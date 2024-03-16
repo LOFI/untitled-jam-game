@@ -115,74 +115,37 @@ fn create_texture_atlas(
     (texture_atlas_layout, texture)
 }
 
-fn create_sprite_from_atlas(
-    commands: &mut Commands,
-    translation: (f32, f32, f32),
-    sprite_index: usize,
-    atlas_handle: Handle<TextureAtlasLayout>,
-    texture: Handle<Image>,
-    frames: Option<AnimationIndices>,
+fn spawn_player(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let sprite_dimensions = Vec2::new(64.0, 64.0);
-    let sprite_hitbox = Vec2::new(24.0, 24.0);
+    let texture: Handle<Image> = asset_server
+        .get_handle("sprites/player/idle-48x48.png")
+        .unwrap();
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
+    let texture_atlas_layout = texture_atlases.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 9 };
+    let translation = Vec3::ZERO;
 
     commands.spawn((
         SpriteSheetBundle {
-            sprite: Sprite {
-                custom_size: Some(sprite_dimensions),
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(translation.0, translation.1, translation.2),
-                ..default()
-            },
             texture,
             atlas: TextureAtlas {
-                index: sprite_index,
-                layout: atlas_handle,
+                layout: texture_atlas_layout,
+                index: animation_indices.first,
             },
+            transform: Transform::from_translation(translation),
             ..default()
         },
+        animation_indices,
+        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
         Player,
         Direction::Right,
         RigidBody::KinematicPositionBased,
         KinematicCharacterController::default(),
-        Collider::cuboid(sprite_hitbox.x, sprite_hitbox.y),
-        AnimationTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
-        AnimationIndices {
-            first: frames.as_ref().map_or(0, |f| f.first),
-            last: frames.as_ref().map_or(0, |f| f.last),
-        },
+        Collider::cuboid(24.0, 24.0),
     ));
-}
-
-fn spawn_player(
-    mut commands: Commands,
-    player_sprite_folder: Res<PlayerSpriteFolder>,
-    asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
-    loaded_folders: Res<Assets<LoadedFolder>>,
-    mut textures: ResMut<Assets<Image>>,
-) {
-    let loaded_folder = loaded_folders.get(&player_sprite_folder.0).unwrap();
-
-    let (texture_atlas, texture) = create_texture_atlas(loaded_folder, None, None, &mut textures);
-    let atlas_handle = texture_atlases.add(texture_atlas.clone());
-    let image_handle: Handle<Image> = asset_server
-        .get_handle("sprites/player/idle-48x48.png")
-        .unwrap();
-    let sprite_index = texture_atlas.get_texture_index(&image_handle).unwrap();
-
-    let translation = Vec3::ZERO;
-
-    create_sprite_from_atlas(
-        &mut commands,
-        translation.into(),
-        sprite_index,
-        atlas_handle,
-        texture,
-        Some(AnimationIndices { first: 0, last: 0 }),
-    )
 }
 
 fn idle_animation(
