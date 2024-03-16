@@ -19,6 +19,7 @@ fn spawn_boulder(
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Circle { radius: 64. }).into(),
             material: materials.add(Color::GRAY),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         })
         .insert(RigidBody::Dynamic)

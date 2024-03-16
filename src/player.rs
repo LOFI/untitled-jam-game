@@ -1,3 +1,4 @@
+use crate::WINDOW_LEFT_X;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
@@ -21,7 +22,7 @@ fn spawn_player(mut commands: Commands) {
                 custom_size: Some(Vec2::new(48.0, 48.0)),
                 ..default()
             },
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            transform: Transform::from_xyz(WINDOW_LEFT_X + 32., 0.0, 0.0),
             ..Default::default()
         })
         .insert(RigidBody::KinematicPositionBased)
