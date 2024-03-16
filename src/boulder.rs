@@ -3,6 +3,9 @@ use bevy_rapier2d::prelude::*;
 
 pub struct BoulderPlugin;
 
+#[derive(Component)]
+pub struct Boulder;
+
 impl Plugin for BoulderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_boulder)
@@ -23,7 +26,8 @@ fn spawn_boulder(
             ..default()
         })
         .insert(RigidBody::Dynamic)
-        .insert(Collider::ball(64.));
+        .insert(Collider::ball(64.))
+        .insert(Boulder);
 }
 
 fn fall() {}

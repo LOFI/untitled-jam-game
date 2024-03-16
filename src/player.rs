@@ -1,10 +1,7 @@
-use std::time::Duration;
-
-use crate::{
-    animation::{AnimationIndices, AnimationTimer},
-    WINDOW_LEFT_X,
-};
-use bevy::{asset::LoadedFolder, prelude::*, render::texture::ImageSampler};
+use crate::animation::{AnimationIndices, AnimationTimer};
+use crate::boulder::Boulder;
+use bevy::math::bounding::{Aabb2d, BoundingCircle, IntersectsVolume};
+use bevy::{asset::LoadedFolder, prelude::*};
 use bevy_rapier2d::prelude::*;
 
 #[derive(Clone, Component, Copy, Debug, Default, Eq, Hash, PartialEq, States)]
@@ -13,7 +10,6 @@ enum PlayerState {
     Setup,
     Idle,
     Walk,
-    Run,
     Push,
     Dead,
 }
@@ -31,42 +27,28 @@ enum Direction {
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PlayerSpriteSheet>()
-            .init_state::<PlayerState>()
+        app.init_state::<PlayerState>()
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(OnExit(PlayerState::Setup), spawn_player)
             .add_systems(
                 FixedUpdate,
-                idle_animation.run_if(in_state(PlayerState::Idle)),
+                (fall, movement, push_boulder, update_sprite_direction),
             )
-            .add_systems(Update, (fall, movement))
-            .add_systems(Update, check_textures.run_if(in_state(PlayerState::Setup)));
+            .add_systems(
+                Update,
+                (
+                    check_textures.run_if(in_state(PlayerState::Setup)),
+                    idle_animation.run_if(in_state(PlayerState::Idle)),
+                    walk_animation.run_if(in_state(PlayerState::Walk)),
+                    push_animation.run_if(in_state(PlayerState::Push)),
+                    update_direction,
+                ),
+            );
     }
 }
 
 #[derive(Resource, Default)]
 struct PlayerSpriteFolder(Handle<LoadedFolder>);
-
-#[derive(Resource)]
-struct PlayerSpriteSheet(Handle<TextureAtlasLayout>);
-
-impl FromWorld for PlayerSpriteSheet {
-    fn from_world(world: &mut World) -> Self {
-        let texture_atlas = TextureAtlasLayout::from_grid(
-            Vec2::new(48.0, 48.0), // sprite tile size
-            10,                    // columns
-            1,                     // rows
-            None,                  // No padding
-            None,                  // No separation
-        );
-
-        let mut texture_atlases = world
-            .get_resource_mut::<Assets<TextureAtlasLayout>>()
-            .unwrap();
-        let texture_atlas_handle = texture_atlases.add(texture_atlas);
-        Self(texture_atlas_handle)
-    }
-}
 
 fn load_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
     // load multiple, individual sprites from a directory
@@ -87,41 +69,13 @@ fn check_textures(
     }
 }
 
-fn create_texture_atlas(
-    folder: &LoadedFolder,
-    padding: Option<UVec2>,
-    sampling: Option<ImageSampler>,
-    textures: &mut ResMut<Assets<Image>>,
-) -> (TextureAtlasLayout, Handle<Image>) {
-    let mut texture_atlas_builder =
-        TextureAtlasBuilder::default().padding(padding.unwrap_or_default());
-
-    for handle in folder.handles.iter() {
-        let id = handle.id().typed_unchecked::<Image>();
-        let Some(texture) = textures.get(id) else {
-            warn!("{:?} is not an image", handle.path().unwrap());
-            continue;
-        };
-
-        texture_atlas_builder.add_texture(Some(id), texture);
-    }
-
-    let (texture_atlas_layout, texture) = texture_atlas_builder.finish().unwrap();
-    let texture = textures.add(texture);
-
-    let image = textures.get_mut(&texture).unwrap();
-    image.sampler = sampling.unwrap_or_default();
-
-    (texture_atlas_layout, texture)
-}
-
 fn spawn_player(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let texture: Handle<Image> = asset_server
-        .get_handle("sprites/player/idle-48x48.png")
+        .get_handle("sprites/player/push-48x48.png")
         .unwrap();
     let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
     let texture_atlas_layout = texture_atlases.add(layout);
@@ -130,6 +84,10 @@ fn spawn_player(
 
     commands.spawn((
         SpriteSheetBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(64.0, 64.0)),
+                ..default()
+            },
             texture,
             atlas: TextureAtlas {
                 layout: texture_atlas_layout,
@@ -150,35 +108,77 @@ fn spawn_player(
 
 fn idle_animation(
     mut commands: Commands,
-    player_sprite_folder: Res<PlayerSpriteFolder>,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
-    loaded_folders: Res<Assets<LoadedFolder>>,
-    mut textures: ResMut<Assets<Image>>,
-    query: Query<(Entity, &Transform), With<Player>>,
+    query: Query<(Entity, &KinematicCharacterControllerOutput), With<Player>>,
 ) {
     if query.is_empty() {
         return;
     }
+    let (entity, output) = query.single();
 
-    let loaded_folder = loaded_folders.get(&player_sprite_folder.0).unwrap();
-    let (entity, transform) = query.single();
+    let texture: Handle<Image> = asset_server.load("sprites/player/idle-48x48.png");
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
+    let texture_atlas_layout = texture_atlases.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 9 };
 
-    let (texture_atlas, texture) = create_texture_atlas(loaded_folder, None, None, &mut textures);
-    let atlas_handle = texture_atlases.add(texture_atlas.clone());
-    let image_handle: Handle<Image> = asset_server
-        .get_handle("sprites/player/idle-48x48.png")
-        .unwrap();
-    let sprite_index = texture_atlas.get_texture_index(&image_handle).unwrap();
+    if output.desired_translation.x == 0.0 && output.grounded {
+        commands
+            .entity(entity)
+            .insert(texture)
+            .insert(texture_atlas_layout)
+            .insert(animation_indices);
+    }
+}
 
-    // create_sprite_from_atlas(
-    //     &mut commands,
-    //     transform.translation.into(),
-    //     sprite_index,
-    //     atlas_handle,
-    //     texture,
-    //     Some(AnimationIndices { first: 0, last: 9 }),
-    // )
+fn walk_animation(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    query: Query<(Entity, &KinematicCharacterControllerOutput), With<Player>>,
+) {
+    if query.is_empty() {
+        return;
+    }
+    let (entity, output) = query.single();
+
+    let texture: Handle<Image> = asset_server.load("sprites/player/walk-48x48.png");
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 8, 1, None, None);
+    let texture_atlas_layout = texture_atlases.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 7 };
+
+    if output.desired_translation.x != 0.0 && output.grounded {
+        commands
+            .entity(entity)
+            .insert(texture)
+            .insert(texture_atlas_layout)
+            .insert(animation_indices);
+    }
+}
+
+fn push_animation(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    query: Query<(Entity, &KinematicCharacterControllerOutput), With<Player>>,
+) {
+    if query.is_empty() {
+        return;
+    }
+    let (entity, output) = query.single();
+
+    let texture: Handle<Image> = asset_server.load("sprites/player/push-48x48.png");
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
+    let texture_atlas_layout = texture_atlases.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 9 };
+
+    if output.desired_translation.x != 0.0 && output.grounded {
+        commands
+            .entity(entity)
+            .insert(texture)
+            .insert(texture_atlas_layout)
+            .insert(animation_indices);
+    }
 }
 
 fn fall(time: Res<Time>, mut query: Query<&mut KinematicCharacterController>) {
@@ -198,23 +198,84 @@ fn movement(
     time: Res<Time>,
     input: Res<ButtonInput<KeyCode>>,
     mut query: Query<&mut KinematicCharacterController>,
+    mut next_state: ResMut<NextState<PlayerState>>,
 ) {
     if query.is_empty() {
         return;
     }
+    next_state.set(PlayerState::Idle);
 
     let mut player = query.single_mut();
     let mut movement = 0.0;
 
     if input.pressed(KeyCode::KeyD) || input.pressed(KeyCode::ArrowRight) {
         movement += time.delta_seconds() * 100.0;
+        next_state.set(PlayerState::Walk);
     }
     if input.pressed(KeyCode::KeyA) || input.pressed(KeyCode::ArrowLeft) {
         movement -= time.delta_seconds() * 100.0;
+        next_state.set(PlayerState::Walk);
     }
 
     match player.translation {
         Some(vec) => player.translation = Some(Vec2::new(movement, vec.y)),
         None => player.translation = Some(Vec2::new(movement, 0.0)),
+    }
+}
+
+fn push_boulder(
+    query: Query<&Transform, With<Player>>,
+    boulder_query: Query<&Transform, With<Boulder>>,
+    mut next_state: ResMut<NextState<PlayerState>>,
+) {
+    if query.is_empty() || boulder_query.is_empty() {
+        return;
+    }
+
+    let player_transform = query.single();
+    let boulder_transform = boulder_query.single();
+
+    let boulder_circle = BoundingCircle::new(boulder_transform.translation.truncate(), 64.0);
+    let player_rect = Aabb2d::new(
+        player_transform.translation.truncate(),
+        Vec2::new(24.0, 24.0),
+    );
+
+    if boulder_circle.aabb_2d().intersects(&player_rect) {
+        info!("Pushing boulder");
+        next_state.set(PlayerState::Push);
+    }
+}
+
+fn update_direction(
+    mut commands: Commands,
+    query: Query<(Entity, &KinematicCharacterControllerOutput)>,
+) {
+    if query.is_empty() {
+        return;
+    }
+
+    let (player, output) = query.single();
+
+    if output.desired_translation.x > 0. {
+        commands.entity(player).insert(Direction::Right);
+    } else if output.desired_translation.x < 0. {
+        commands.entity(player).insert(Direction::Left);
+    }
+}
+
+fn update_sprite_direction(mut query: Query<(&mut Sprite, &Direction)>) {
+    if query.is_empty() {
+        return;
+    }
+
+    let (mut sprite, direction) = query.single_mut();
+    match direction {
+        Direction::Right => {
+            sprite.flip_x = false;
+        }
+        Direction::Left => {
+            sprite.flip_x = true;
+        }
     }
 }
