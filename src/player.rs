@@ -102,6 +102,7 @@ fn create_texture_atlas(
             warn!("{:?} is not an image", handle.path().unwrap());
             continue;
         };
+        info!("Adding texture {:?}", handle.path().unwrap());
 
         texture_atlas_builder.add_texture(Some(id), texture);
     }
@@ -122,9 +123,12 @@ fn create_sprite_from_atlas(
     atlas_handle: Handle<TextureAtlasLayout>,
     texture: Handle<Image>,
     frames: Option<AnimationIndices>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let sprite_dimensions = Vec2::new(64.0, 64.0);
     let sprite_hitbox = Vec2::new(24.0, 24.0);
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
+    let tal = texture_atlas_layouts.add(layout);
 
     commands.spawn((
         SpriteSheetBundle {
@@ -139,7 +143,7 @@ fn create_sprite_from_atlas(
             texture,
             atlas: TextureAtlas {
                 index: sprite_index,
-                layout: atlas_handle,
+                layout: tal,
             },
             ..default()
         },
@@ -181,7 +185,8 @@ fn spawn_player(
         sprite_index,
         atlas_handle,
         texture,
-        Some(AnimationIndices { first: 0, last: 0 }),
+        Some(AnimationIndices { first: 0, last: 9 }),
+        texture_atlases,
     )
 }
 
