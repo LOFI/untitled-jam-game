@@ -1,10 +1,4 @@
-use std::time::Duration;
-
-use crate::{
-    animation::{AnimationIndices, AnimationTimer},
-    WINDOW_LEFT_X,
-};
-use bevy::{asset::LoadedFolder, prelude::*, render::texture::ImageSampler};
+use crate::animation::{AnimationIndices, AnimationTimer};
 use bevy_rapier2d::prelude::*;
 
 #[derive(Clone, Component, Copy, Debug, Default, Eq, Hash, PartialEq, States)]
@@ -31,8 +25,7 @@ enum Direction {
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PlayerSpriteSheet>()
-            .init_state::<PlayerState>()
+        app.init_state::<PlayerState>()
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(OnExit(PlayerState::Setup), spawn_player)
             .add_systems(
@@ -130,6 +123,10 @@ fn spawn_player(
 
     commands.spawn((
         SpriteSheetBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(64.0, 64.0)),
+                ..default()
+            },
             texture,
             atlas: TextureAtlas {
                 layout: texture_atlas_layout,
