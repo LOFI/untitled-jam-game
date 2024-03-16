@@ -52,10 +52,10 @@ fn movement(
     let mut player = query.single_mut();
     let mut movement = 0.0;
 
-    if input.just_pressed(KeyCode::KeyD) || input.just_pressed(KeyCode::ArrowRight) {
+    if input.pressed(KeyCode::KeyD) || input.pressed(KeyCode::ArrowRight) {
         movement += time.delta_seconds() * 100.0;
     }
-    if input.just_pressed(KeyCode::KeyA) || input.just_pressed(KeyCode::ArrowLeft) {
+    if input.pressed(KeyCode::KeyA) || input.pressed(KeyCode::ArrowLeft) {
         movement -= time.delta_seconds() * 100.0;
     }
 
