@@ -56,7 +56,7 @@ fn main() {
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
             RapierDebugRenderPlugin::default(),
         ))
-        .add_plugins((PlayerPlugin))
+        .add_plugins(PlayerPlugin)
         .add_plugins((WorldInspectorPlugin::new(), EditorPlugin::default())) // Egui editors
         .add_systems(Startup, (spawn_camera, spawn_floor))
         .add_systems(Update, bevy::window::close_on_esc)
