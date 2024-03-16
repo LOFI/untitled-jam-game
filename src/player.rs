@@ -158,31 +158,40 @@ fn create_sprite_from_atlas(
 
 fn spawn_player(
     mut commands: Commands,
-    player_sprite_folder: Res<PlayerSpriteFolder>,
+    // player_sprite_folder: Res<PlayerSpriteFolder>,
     asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
-    loaded_folders: Res<Assets<LoadedFolder>>,
-    mut textures: ResMut<Assets<Image>>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    // loaded_folders: Res<Assets<LoadedFolder>>,
+    // mut textures: ResMut<Assets<Image>>,
 ) {
-    let loaded_folder = loaded_folders.get(&player_sprite_folder.0).unwrap();
+    // let loaded_folder = loaded_folders.get(&player_sprite_folder.0).unwrap();
 
-    let (texture_atlas, texture) = create_texture_atlas(loaded_folder, None, None, &mut textures);
-    let atlas_handle = texture_atlases.add(texture_atlas.clone());
-    let image_handle: Handle<Image> = asset_server
-        .get_handle("sprites/player/idle-48x48.png")
-        .unwrap();
-    let sprite_index = texture_atlas.get_texture_index(&image_handle).unwrap();
+    // let (texture_atlas, texture) = create_texture_atlas(loaded_folder, None, None, &mut textures);
+    // let atlas_handle = texture_atlases.add(texture_atlas.clone());
+    // let image_handle: Handle<Image> = asset_server
+    // .get_handle("sprites/player/idle-48x48.png")
+    // .unwrap();
 
-    let translation = Vec3::ZERO;
+    // let sprite_index = texture_atlas.get_texture_index(&image_handle).unwrap();
 
-    create_sprite_from_atlas(
-        &mut commands,
-        translation.into(),
-        sprite_index,
-        atlas_handle,
-        texture,
-        Some(AnimationIndices { first: 0, last: 0 }),
-    )
+    let texture = asset_server.load("sprites/player/idle-48x48.png");
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
+    let texture_atlas_layout = texture_atlas_layouts.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 9 };
+    // let translation = Vec3::ZERO;
+    commands.spawn((
+        SpriteSheetBundle {
+            texture,
+            atlas: TextureAtlas {
+                layout: texture_atlas_layout,
+                index: animation_indices.first,
+            },
+            // transform: Transform::from_scale(Vec3::splat(6.0)),
+            ..default()
+        },
+        animation_indices,
+        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+    ));
 }
 
 fn idle_animation(
