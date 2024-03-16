@@ -1,3 +1,4 @@
+mod boulder;
 mod player;
 
 use bevy::asset::AssetMetaCheck;
@@ -13,6 +14,7 @@ use bevy_kira_audio::prelude::*;
 use bevy_pkv::PkvStore;
 use bevy_rapier2d::prelude::*;
 
+use boulder::BoulderPlugin;
 use player::PlayerPlugin;
 
 #[derive(Resource)]
@@ -56,7 +58,7 @@ fn main() {
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
             RapierDebugRenderPlugin::default(),
         ))
-        .add_plugins(PlayerPlugin)
+        .add_plugins((BoulderPlugin, PlayerPlugin))
         .add_plugins((WorldInspectorPlugin::new(), EditorPlugin::default())) // Egui editors
         .add_systems(Startup, (spawn_camera, spawn_floor))
         .add_systems(Update, bevy::window::close_on_esc)
