@@ -9,6 +9,7 @@ bevy-inspector-egui = "0.23.4"
 bevy_editor_pls = "0.8.1"
 bevy_kira_audio = { version = "0.19.0", features = ["wav"] }
 bevy_pkv = "0.10.0"
+bevy_rapier2d = "0.25.0"
 
 [profile.dev]
 opt-level = 1
