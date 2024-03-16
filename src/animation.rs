@@ -8,7 +8,7 @@ impl Plugin for AnimationPlugin {
     }
 }
 
-#[derive(Component)]
+#[derive(Clone, Component)]
 pub struct AnimationIndices {
     pub first: usize,
     pub last: usize,
