@@ -1,4 +1,6 @@
 use crate::animation::{AnimationIndices, AnimationTimer};
+use crate::boulder::Boulder;
+use bevy::math::bounding::{Aabb2d, BoundingCircle, IntersectsVolume};
 use bevy::{asset::LoadedFolder, prelude::*};
 use bevy_rapier2d::prelude::*;
 
@@ -8,7 +10,6 @@ enum PlayerState {
     Setup,
     Idle,
     Walk,
-    Run,
     Push,
     Dead,
 }
@@ -29,12 +30,17 @@ impl Plugin for PlayerPlugin {
         app.init_state::<PlayerState>()
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(OnExit(PlayerState::Setup), spawn_player)
-            .add_systems(FixedUpdate, (fall, movement, update_sprite_direction))
+            .add_systems(
+                FixedUpdate,
+                (fall, movement, push_boulder, update_sprite_direction),
+            )
             .add_systems(
                 Update,
                 (
                     check_textures.run_if(in_state(PlayerState::Setup)),
                     idle_animation.run_if(in_state(PlayerState::Idle)),
+                    walk_animation.run_if(in_state(PlayerState::Walk)),
+                    push_animation.run_if(in_state(PlayerState::Push)),
                     update_direction,
                 ),
             );
@@ -104,24 +110,75 @@ fn idle_animation(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
-    query: Query<(Entity, &Transform), With<Player>>,
+    query: Query<(Entity, &KinematicCharacterControllerOutput), With<Player>>,
 ) {
     if query.is_empty() {
         return;
     }
-    let (entity, transform) = query.single();
+    let (entity, output) = query.single();
 
-    let texture: Handle<Image> = asset_server
-        .get_handle("sprites/player/idle-48x48.png")
-        .unwrap();
+    let texture: Handle<Image> = asset_server.load("sprites/player/idle-48x48.png");
     let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
     let texture_atlas_layout = texture_atlases.add(layout);
     let animation_indices = AnimationIndices { first: 0, last: 9 };
-    commands
-        .entity(entity)
-        .insert(texture)
-        .insert(texture_atlas_layout)
-        .insert(animation_indices);
+
+    if output.desired_translation.x == 0.0 && output.grounded {
+        commands
+            .entity(entity)
+            .insert(texture)
+            .insert(texture_atlas_layout)
+            .insert(animation_indices);
+    }
+}
+
+fn walk_animation(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    query: Query<(Entity, &KinematicCharacterControllerOutput), With<Player>>,
+) {
+    if query.is_empty() {
+        return;
+    }
+    let (entity, output) = query.single();
+
+    let texture: Handle<Image> = asset_server.load("sprites/player/walk-48x48.png");
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 8, 1, None, None);
+    let texture_atlas_layout = texture_atlases.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 7 };
+
+    if output.desired_translation.x != 0.0 && output.grounded {
+        commands
+            .entity(entity)
+            .insert(texture)
+            .insert(texture_atlas_layout)
+            .insert(animation_indices);
+    }
+}
+
+fn push_animation(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    query: Query<(Entity, &KinematicCharacterControllerOutput), With<Player>>,
+) {
+    if query.is_empty() {
+        return;
+    }
+    let (entity, output) = query.single();
+
+    let texture: Handle<Image> = asset_server.load("sprites/player/push-48x48.png");
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
+    let texture_atlas_layout = texture_atlases.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 9 };
+
+    if output.desired_translation.x != 0.0 && output.grounded {
+        commands
+            .entity(entity)
+            .insert(texture)
+            .insert(texture_atlas_layout)
+            .insert(animation_indices);
+    }
 }
 
 fn fall(time: Res<Time>, mut query: Query<&mut KinematicCharacterController>) {
@@ -141,24 +198,52 @@ fn movement(
     time: Res<Time>,
     input: Res<ButtonInput<KeyCode>>,
     mut query: Query<&mut KinematicCharacterController>,
+    mut next_state: ResMut<NextState<PlayerState>>,
 ) {
     if query.is_empty() {
         return;
     }
+    next_state.set(PlayerState::Idle);
 
     let mut player = query.single_mut();
     let mut movement = 0.0;
 
     if input.pressed(KeyCode::KeyD) || input.pressed(KeyCode::ArrowRight) {
         movement += time.delta_seconds() * 100.0;
+        next_state.set(PlayerState::Walk);
     }
     if input.pressed(KeyCode::KeyA) || input.pressed(KeyCode::ArrowLeft) {
         movement -= time.delta_seconds() * 100.0;
+        next_state.set(PlayerState::Walk);
     }
 
     match player.translation {
         Some(vec) => player.translation = Some(Vec2::new(movement, vec.y)),
         None => player.translation = Some(Vec2::new(movement, 0.0)),
+    }
+}
+
+fn push_boulder(
+    query: Query<&Transform, With<Player>>,
+    boulder_query: Query<&Transform, With<Boulder>>,
+    mut next_state: ResMut<NextState<PlayerState>>,
+) {
+    if query.is_empty() || boulder_query.is_empty() {
+        return;
+    }
+
+    let player_transform = query.single();
+    let boulder_transform = boulder_query.single();
+
+    let boulder_circle = BoundingCircle::new(boulder_transform.translation.truncate(), 64.0);
+    let player_rect = Aabb2d::new(
+        player_transform.translation.truncate(),
+        Vec2::new(24.0, 24.0),
+    );
+
+    if boulder_circle.aabb_2d().intersects(&player_rect) {
+        info!("Pushing boulder");
+        next_state.set(PlayerState::Push);
     }
 }
 
