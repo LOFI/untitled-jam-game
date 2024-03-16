@@ -19,3 +19,8 @@ opt-level = 3
 
 [profile.release]
 opt-level = "z"
+
+[features]
+# N.b. we may need to disable the default features when building wasm.
+dynamic = ["bevy/dynamic_linking"]
+default = ["dynamic"]
