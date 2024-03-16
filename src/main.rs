@@ -77,7 +77,7 @@ fn main() {
         .add_plugins((AnimationPlugin, BoulderPlugin, PlayerPlugin))
         .add_plugins((WorldInspectorPlugin::new(), EditorPlugin::default())) // Egui editors
         .add_systems(Startup, (spawn_camera, spawn_floor, spawn_walls))
-        // .add_systems(Update, move_camera)
+        .add_systems(Update, move_camera)
         .add_systems(Update, bevy::window::close_on_esc)
         .run();
 }
@@ -103,7 +103,7 @@ fn spawn_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             label: None,
             size: canvas_size,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8UnormSrgb,
+            format: TextureFormat::Bgra8UnormSrgb,
             mip_level_count: 1,
             sample_count: 1,
             usage: TextureUsages::TEXTURE_BINDING
@@ -113,6 +113,7 @@ fn spawn_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         },
         ..default()
     };
+    canvas.resize(canvas_size);
     let image_handle = images.add(canvas);
 
     commands.spawn((
