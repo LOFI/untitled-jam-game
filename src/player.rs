@@ -16,7 +16,7 @@ fn spawn_player(mut commands: Commands) {
             sprite: Sprite {
                 color: Color::rgb(0.5, 0.5, 1.0),
                 custom_size: Some(Vec2::new(32.0, 32.0)),
-                anchor: bevy::sprite::Anchor::BottomCenter,
+                // anchor: bevy::sprite::Anchor::BottomCenter,
                 ..default()
             },
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
@@ -24,7 +24,7 @@ fn spawn_player(mut commands: Commands) {
         })
         .insert(RigidBody::KinematicPositionBased)
         .insert(KinematicCharacterController::default())
-        .insert(Collider::cuboid(0.5, 0.5));
+        .insert(Collider::cuboid(16., 16.));
 }
 
 fn fall(time: Res<Time>, mut query: Query<&mut KinematicCharacterController>) {
