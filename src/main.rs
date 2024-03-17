@@ -1,17 +1,11 @@
 mod animation;
 mod boulder;
+mod camera;
 mod player;
 
 use bevy::asset::AssetMetaCheck;
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
-use bevy::render::render_resource::{
-    Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-};
-use bevy::render::view::RenderLayers;
-use bevy::{
-    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-    render::camera::RenderTarget,
-};
 use bevy_editor_pls::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_kira_audio::prelude::*;
@@ -21,7 +15,8 @@ use std::f32::consts::PI;
 
 use animation::AnimationPlugin;
 use boulder::BoulderPlugin;
-use player::{Player, PlayerPlugin};
+use camera::{CameraPlugin, UI_LAYER};
+use player::PlayerPlugin;
 
 const WINDOW_WIDTH: f32 = 640.;
 const WINDOW_HEIGHT: f32 = 480.;
@@ -73,10 +68,9 @@ fn main() {
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
             RapierDebugRenderPlugin::default(),
         ))
-        .add_plugins((AnimationPlugin, BoulderPlugin, PlayerPlugin))
+        .add_plugins((AnimationPlugin, BoulderPlugin, CameraPlugin, PlayerPlugin))
         // .add_plugins((WorldInspectorPlugin::new(), EditorPlugin::default())) // Egui editors
-        .add_systems(Startup, spawn_camera)
-        .add_systems(Update, (move_camera, main_menu_button_system))
+        .add_systems(Update, main_menu_button_system)
         .add_systems(Update, bevy::window::close_on_esc)
         .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_walls))
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
@@ -85,76 +79,6 @@ fn main() {
             (cleanup_title, cleanup_main_menu),
         )
         .run();
-}
-
-#[derive(Component)]
-struct MainCamera;
-
-#[derive(Component)]
-struct UICamera;
-
-const UI_LAYER: RenderLayers = RenderLayers::layer(9);
-
-fn spawn_camera(
-    mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
-    mut next_state: ResMut<NextState<GameState>>,
-) {
-    let canvas_size = Extent3d {
-        width: WINDOW_WIDTH as u32,
-        height: WINDOW_HEIGHT as u32,
-        ..default()
-    };
-
-    // This image serves as a canvas for the UI layer
-    let mut canvas = Image {
-        texture_descriptor: TextureDescriptor {
-            label: None,
-            size: canvas_size,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::Bgra8UnormSrgb,
-            mip_level_count: 1,
-            sample_count: 1,
-            usage: TextureUsages::TEXTURE_BINDING
-                | TextureUsages::RENDER_ATTACHMENT
-                | TextureUsages::COPY_DST,
-            view_formats: &[],
-        },
-        ..default()
-    };
-    canvas.resize(canvas_size);
-    let image_handle = images.add(canvas);
-
-    commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                order: -1,
-                target: RenderTarget::Image(image_handle.clone()),
-                ..default()
-            },
-            ..default()
-        },
-        UICamera,
-        UI_LAYER,
-    ));
-
-    commands.spawn((Camera2dBundle::default(), MainCamera));
-
-    next_state.set(GameState::MainMenu);
-}
-
-fn move_camera(
-    mut query: Query<(&mut Transform, &MainCamera), Without<Player>>,
-    player_query: Query<(&Transform, &Player), With<KinematicCharacterController>>,
-) {
-    if query.is_empty() || player_query.is_empty() {
-        return;
-    }
-
-    let mut camera = query.single_mut();
-    let transform = player_query.single().0;
-
-    camera.0.translation.x = transform.translation.x;
 }
 
 fn spawn_floor(mut commands: Commands) {
