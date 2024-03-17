@@ -33,6 +33,13 @@ struct BackgroundMusic;
 #[derive(Resource)]
 struct SoundFX;
 
+#[derive(Event)]
+pub enum PlayerInputEvent {
+    MoveLeft,
+    MoveRight,
+    Idle,
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, States)]
 enum GameState {
     #[default]
@@ -50,6 +57,7 @@ fn main() {
         .init_state::<GameState>()
         .add_audio_channel::<BackgroundMusic>()
         .add_audio_channel::<SoundFX>()
+        .add_event::<PlayerInputEvent>()
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
@@ -70,7 +78,7 @@ fn main() {
         ))
         .add_plugins((AnimationPlugin, BoulderPlugin, CameraPlugin, PlayerPlugin))
         // .add_plugins((WorldInspectorPlugin::new(), EditorPlugin::default())) // Egui editors
-        .add_systems(Update, main_menu_button_system)
+        .add_systems(Update, (movement, main_menu_button_system))
         .add_systems(Update, bevy::window::close_on_esc)
         .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_walls))
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
@@ -79,6 +87,16 @@ fn main() {
             (cleanup_title, cleanup_main_menu),
         )
         .run();
+}
+
+fn movement(keyboard_input: Res<ButtonInput<KeyCode>>, mut events: EventWriter<PlayerInputEvent>) {
+    if keyboard_input.pressed(KeyCode::ArrowLeft) {
+        events.send(PlayerInputEvent::MoveLeft);
+    } else if keyboard_input.pressed(KeyCode::ArrowRight) {
+        events.send(PlayerInputEvent::MoveRight);
+    } else {
+        events.send(PlayerInputEvent::Idle);
+    }
 }
 
 fn spawn_floor(mut commands: Commands) {
