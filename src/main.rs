@@ -11,7 +11,6 @@ use bevy::render::view::RenderLayers;
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     render::camera::RenderTarget,
-    window::Window,
 };
 use bevy_editor_pls::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -75,10 +74,16 @@ fn main() {
             RapierDebugRenderPlugin::default(),
         ))
         .add_plugins((AnimationPlugin, BoulderPlugin, PlayerPlugin))
-        .add_plugins((WorldInspectorPlugin::new(), EditorPlugin::default())) // Egui editors
-        .add_systems(Startup, (spawn_camera, spawn_floor, spawn_walls))
-        .add_systems(Update, move_camera)
+        // .add_plugins((WorldInspectorPlugin::new(), EditorPlugin::default())) // Egui editors
+        .add_systems(Startup, spawn_camera)
+        .add_systems(Update, (move_camera, main_menu_button_system))
         .add_systems(Update, bevy::window::close_on_esc)
+        .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_walls))
+        .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
+        .add_systems(
+            OnExit(GameState::MainMenu),
+            (cleanup_title, cleanup_main_menu),
+        )
         .run();
 }
 
@@ -90,7 +95,11 @@ struct UICamera;
 
 const UI_LAYER: RenderLayers = RenderLayers::layer(9);
 
-fn spawn_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
+fn spawn_camera(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
     let canvas_size = Extent3d {
         width: WINDOW_WIDTH as u32,
         height: WINDOW_HEIGHT as u32,
@@ -130,6 +139,8 @@ fn spawn_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     ));
 
     commands.spawn((Camera2dBundle::default(), MainCamera));
+
+    next_state.set(GameState::MainMenu);
 }
 
 fn move_camera(
@@ -198,4 +209,173 @@ fn spawn_walls(mut commands: Commands) {
         })
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(0.5, 0.5));
+}
+
+#[derive(Component)]
+struct TitleText;
+
+fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let title_font: Handle<Font> = asset_server.load("fonts/Kaph-Regular.ttf");
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                top: Val::Px(-100.),
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn((
+                TextBundle::from_section(
+                    "Sisyphus Simulator".to_string(),
+                    TextStyle {
+                        font_size: 60.0,
+                        color: Color::WHITE,
+                        font: title_font,
+                    },
+                )
+                .with_text_justify(JustifyText::Center),
+                UI_LAYER,
+                TitleText,
+            ));
+        });
+}
+
+fn cleanup_title(mut commands: Commands, query: Query<Entity, With<Text>>) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let font = asset_server.load("fonts/Kaph-Italic.ttf");
+    let texture_handle: Handle<Image> = asset_server.load("ui/CGB02-purple_M_btn.png");
+
+    let text_style = TextStyle {
+        color: Color::WHITE,
+        font_size: 24.0,
+        font,
+    };
+
+    let slicer = TextureSlicer {
+        border: BorderRect::square(16.0),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: 1.,
+    };
+
+    commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    margin: UiRect {
+                        left: Val::Px(0.),
+                        right: Val::Px(0.),
+                        top: Val::Px(20.),
+                        bottom: Val::Px(0.),
+                    },
+                    ..default()
+                },
+                ..default()
+            },
+            UI_LAYER,
+        ))
+        .with_children(|parent| {
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            width: Val::Px(150.),
+                            height: Val::Px(50.),
+                            ..default()
+                        },
+                        image: texture_handle.clone().into(),
+                        ..default()
+                    },
+                    ImageScaleMode::Sliced(slicer.clone()),
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Play".to_string(),
+                        text_style.clone(),
+                    ));
+                });
+
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            width: Val::Px(150.),
+                            height: Val::Px(50.),
+                            margin: UiRect {
+                                top: Val::Px(10.),
+                                ..default()
+                            },
+                            ..default()
+                        },
+                        image: texture_handle.clone().into(),
+                        ..default()
+                    },
+                    ImageScaleMode::Sliced(slicer.clone()),
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Quit".to_string(),
+                        text_style.clone(),
+                    ));
+                });
+        });
+}
+
+fn cleanup_main_menu(
+    mut commands: Commands,
+    interaction_query: Query<(Entity, &Interaction, &mut UiImage), With<Button>>,
+) {
+    for entity in &mut interaction_query.iter() {
+        commands.entity(entity.0).despawn_recursive();
+    }
+}
+
+fn main_menu_button_system(
+    mut state: ResMut<NextState<GameState>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut interaction_query: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
+    mut text_query: Query<&mut Text>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        state.set(GameState::InGame);
+    }
+
+    for (interaction, children) in &mut interaction_query {
+        let mut text = text_query.get_mut(children[0]).unwrap();
+        match *interaction {
+            Interaction::Pressed => {
+                if text.sections[0].value == "Play" {
+                    state.set(GameState::InGame);
+                } else if text.sections[0].value == "Quit" {
+                    std::process::exit(0);
+                }
+            }
+            Interaction::Hovered => {
+                text.sections[0].style.font_size = 26.0;
+            }
+            Interaction::None => {
+                text.sections[0].style.font_size = 24.0;
+            }
+        }
+    }
 }

@@ -1,5 +1,6 @@
 use crate::animation::{AnimationIndices, AnimationTimer};
 use crate::boulder::Boulder;
+use crate::GameState;
 use bevy::math::bounding::{Aabb2d, BoundingCircle, IntersectsVolume};
 use bevy::{asset::LoadedFolder, prelude::*};
 use bevy_rapier2d::prelude::*;
@@ -28,11 +29,13 @@ enum Direction {
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<PlayerState>()
+            .add_systems(OnExit(GameState::MainMenu), start)
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(OnExit(PlayerState::Setup), spawn_player)
             .add_systems(
                 FixedUpdate,
-                (fall, movement, push_boulder, update_sprite_direction),
+                (fall, movement, push_boulder, update_sprite_direction)
+                    .run_if(in_state(GameState::InGame)),
             )
             .add_systems(
                 Update,
@@ -45,6 +48,10 @@ impl Plugin for PlayerPlugin {
                 ),
             );
     }
+}
+
+fn start(mut next_state: ResMut<NextState<PlayerState>>) {
+    next_state.set(PlayerState::Setup);
 }
 
 #[derive(Resource, Default)]
@@ -64,6 +71,7 @@ fn check_textures(
 ) {
     for event in events.read() {
         if event.is_loaded_with_dependencies(&player_sprite_folder.0) {
+            info!("loaded player textures");
             next_state.set(PlayerState::Idle);
         }
     }
@@ -74,13 +82,11 @@ fn spawn_player(
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let texture: Handle<Image> = asset_server
-        .get_handle("sprites/player/push-48x48.png")
-        .unwrap();
+    let texture: Handle<Image> = asset_server.load("sprites/player/push-48x48.png");
     let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
     let texture_atlas_layout = texture_atlases.add(layout);
     let animation_indices = AnimationIndices { first: 0, last: 9 };
-    let translation = Vec3::ZERO;
+    let translation = Vec3::new(-50., 0., 0.);
 
     commands.spawn((
         SpriteSheetBundle {
@@ -104,6 +110,7 @@ fn spawn_player(
         KinematicCharacterController::default(),
         Collider::cuboid(24.0, 24.0),
     ));
+    info!("spawned player");
 }
 
 fn idle_animation(
@@ -242,7 +249,7 @@ fn push_boulder(
     );
 
     if boulder_circle.aabb_2d().intersects(&player_rect) {
-        info!("Pushing boulder");
+        // info!("pushing boulnder");
         next_state.set(PlayerState::Push);
     }
 }
