@@ -253,12 +253,12 @@ fn cleanup_title(mut commands: Commands, query: Query<Entity, With<Text>>) {
 }
 
 fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let font = asset_server.load("fonts/Kaph-Italic.ttf");
+    let font = asset_server.load("fonts/PeaberryMono.ttf");
     let texture_handle: Handle<Image> = asset_server.load("ui/CGB02-purple_M_btn.png");
 
     let text_style = TextStyle {
         color: Color::WHITE,
-        font_size: 24.0,
+        font_size: 25.0,
         font,
     };
 
@@ -371,10 +371,10 @@ fn main_menu_button_system(
                 }
             }
             Interaction::Hovered => {
-                text.sections[0].style.font_size = 26.0;
+                text.sections[0].style.font_size = 30.0;
             }
             Interaction::None => {
-                text.sections[0].style.font_size = 24.0;
+                text.sections[0].style.font_size = 25.0;
             }
         }
     }
