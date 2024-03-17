@@ -6,7 +6,6 @@ mod player;
 use bevy::asset::AssetMetaCheck;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
-use bevy_editor_pls::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_kira_audio::prelude::*;
 use bevy_pkv::PkvStore;
@@ -18,8 +17,8 @@ use boulder::BoulderPlugin;
 use camera::{CameraPlugin, UI_LAYER};
 use player::PlayerPlugin;
 
-const WINDOW_WIDTH: f32 = 640.;
-const WINDOW_HEIGHT: f32 = 480.;
+pub const WINDOW_WIDTH: f32 = 640.;
+pub const WINDOW_HEIGHT: f32 = 480.;
 const WINDOW_BOTTOM_Y: f32 = WINDOW_HEIGHT / -2.;
 const WINDOW_LEFT_X: f32 = WINDOW_WIDTH / -2.;
 
@@ -41,7 +40,7 @@ pub enum PlayerInputEvent {
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, States)]
-enum GameState {
+pub enum GameState {
     #[default]
     Startup,
     MainMenu,
@@ -77,7 +76,7 @@ fn main() {
             RapierDebugRenderPlugin::default(),
         ))
         .add_plugins((AnimationPlugin, BoulderPlugin, CameraPlugin, PlayerPlugin))
-        // .add_plugins((WorldInspectorPlugin::new(), EditorPlugin::default())) // Egui editors
+        // .add_plugins(WorldInspectorPlugin::new()) // Egui editor
         .add_systems(Update, (movement, main_menu_button_system))
         .add_systems(Update, bevy::window::close_on_esc)
         .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_walls))
@@ -107,7 +106,7 @@ fn spawn_floor(mut commands: Commands) {
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(0., -240., 0.),
+                translation: Vec3::new(0., WINDOW_BOTTOM_Y, 0.),
                 scale: Vec3::new(640., 20., 1.),
                 ..default()
             },
