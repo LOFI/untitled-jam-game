@@ -1,6 +1,6 @@
 use crate::animation::{AnimationIndices, AnimationTimer};
 use crate::boulder::Boulder;
-use crate::GameState;
+use crate::{GameState, PlayerInputEvent};
 use bevy::math::bounding::{Aabb2d, BoundingCircle, IntersectsVolume};
 use bevy::{asset::LoadedFolder, prelude::*};
 use bevy_rapier2d::prelude::*;
@@ -71,7 +71,6 @@ fn check_textures(
 ) {
     for event in events.read() {
         if event.is_loaded_with_dependencies(&player_sprite_folder.0) {
-            info!("loaded player textures");
             next_state.set(PlayerState::Idle);
         }
     }
@@ -203,25 +202,31 @@ fn fall(time: Res<Time>, mut query: Query<&mut KinematicCharacterController>) {
 
 fn movement(
     time: Res<Time>,
-    input: Res<ButtonInput<KeyCode>>,
+    mut events: EventReader<PlayerInputEvent>,
     mut query: Query<&mut KinematicCharacterController>,
     mut next_state: ResMut<NextState<PlayerState>>,
 ) {
     if query.is_empty() {
         return;
     }
-    next_state.set(PlayerState::Idle);
 
     let mut player = query.single_mut();
     let mut movement = 0.0;
 
-    if input.pressed(KeyCode::KeyD) || input.pressed(KeyCode::ArrowRight) {
-        movement += time.delta_seconds() * 100.0;
-        next_state.set(PlayerState::Walk);
-    }
-    if input.pressed(KeyCode::KeyA) || input.pressed(KeyCode::ArrowLeft) {
-        movement -= time.delta_seconds() * 100.0;
-        next_state.set(PlayerState::Walk);
+    for event in events.read() {
+        match event {
+            PlayerInputEvent::MoveRight => {
+                movement += time.delta_seconds() * 100.0;
+                next_state.set(PlayerState::Walk);
+            }
+            PlayerInputEvent::MoveLeft => {
+                movement -= time.delta_seconds() * 100.0;
+                next_state.set(PlayerState::Walk);
+            }
+            PlayerInputEvent::Idle => {
+                next_state.set(PlayerState::Idle);
+            }
+        }
     }
 
     match player.translation {
