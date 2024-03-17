@@ -3,12 +3,14 @@ use bevy_rapier2d::prelude::*;
 
 pub struct BoulderPlugin;
 
+use crate::GameState;
+
 #[derive(Component)]
 pub struct Boulder;
 
 impl Plugin for BoulderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_boulder)
+        app.add_systems(OnExit(GameState::MainMenu), spawn_boulder)
             .add_systems(Update, fall);
     }
 }
