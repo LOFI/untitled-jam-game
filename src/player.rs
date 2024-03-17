@@ -31,10 +31,19 @@ impl Plugin for PlayerPlugin {
         app.init_state::<PlayerState>()
             .add_systems(OnExit(GameState::MainMenu), start)
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
-            .add_systems(OnExit(PlayerState::Setup), spawn_player)
+            .add_systems(
+                OnExit(PlayerState::Setup),
+                (spawn_player, setup_fatigue_marker.after(spawn_player)),
+            )
             .add_systems(
                 FixedUpdate,
-                (fall, movement, push_boulder, update_sprite_direction)
+                (
+                    fall,
+                    movement,
+                    push_boulder,
+                    update_sprite_direction,
+                    update_fatigue_marker,
+                )
                     .run_if(in_state(GameState::InGame)),
             )
             .add_systems(
@@ -107,9 +116,8 @@ fn spawn_player(
         Direction::Right,
         RigidBody::KinematicPositionBased,
         KinematicCharacterController::default(),
-        Collider::cuboid(24.0, 24.0),
+        Collider::capsule_y(16.0, 16.0),
     ));
-    info!("spawned player");
 }
 
 fn idle_animation(
@@ -290,4 +298,83 @@ fn update_sprite_direction(mut query: Query<(&mut Sprite, &Direction)>) {
             sprite.flip_x = true;
         }
     }
+}
+
+#[derive(Component)]
+struct FatigueMarker;
+
+fn setup_fatigue_marker(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    player: Query<&Transform, With<Player>>,
+) {
+    let texture: Handle<Image> = asset_server.load("ui/fatigue.png");
+    let layout = TextureAtlasLayout::from_grid(
+        Vec2::new(46.0, 14.0), // tile size
+        8,                     // columns
+        1,                     // rows
+        None,
+        None,
+    );
+    let texture_atlas_handle = texture_atlases.add(layout);
+
+    commands
+        .spawn(SpriteSheetBundle {
+            sprite: Sprite::default(),
+            atlas: TextureAtlas {
+                layout: texture_atlas_handle,
+                index: 0,
+            },
+            texture,
+            transform: Transform {
+                translation: player.single().translation + Vec3::new(0.0, -32.0, 0.0),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(FatigueMarker);
+}
+
+fn update_fatigue_marker(
+    mut commands: Commands,
+    player: Query<&Transform, With<Player>>,
+    mut entity: Query<(Entity, &mut TextureAtlas), With<FatigueMarker>>,
+) {
+    if entity.is_empty() || player.is_empty() {
+        return;
+    }
+
+    let fatigue = 30.0;
+
+    let (entity, mut atlas) = entity.single_mut();
+
+    match fatigue {
+        0.0..=12.5 => {
+            atlas.index = 0;
+        }
+        12.6..=25.0 => {
+            atlas.index = 1;
+        }
+        25.1..=37.5 => {
+            atlas.index = 2;
+        }
+        37.6..=50.0 => {
+            atlas.index = 4;
+        }
+        50.1..=62.5 => {
+            atlas.index = 5;
+        }
+        62.6..=75.0 => {
+            atlas.index = 6;
+        }
+        _ => {
+            atlas.index = 7;
+        }
+    }
+
+    commands.entity(entity).insert(Transform {
+        translation: player.single().translation + Vec3::new(0.0, 32.0, 0.0),
+        ..default()
+    });
 }
