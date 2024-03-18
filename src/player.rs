@@ -39,6 +39,7 @@ impl Plugin for PlayerPlugin {
                 (
                     fall,
                     movement,
+                    rotate,
                     push_boulder,
                     update_sprite_direction,
                     update_fatigue_marker,
@@ -377,6 +378,19 @@ fn update_fatigue_marker(
         translation: player.single().translation + Vec3::new(0.0, 32.0, 0.0),
         ..default()
     });
+}
+
+fn rotate(mut query: Query<(&mut Transform, &KinematicCharacterControllerOutput)>) {
+    if query.is_empty() {
+        return;
+    }
+
+    let (mut transform, output) = query.single_mut();
+    if output.desired_translation.x > 0. {
+        transform.rotation = Quat::from_rotation_z(0.0);
+    } else if output.desired_translation.x < 0. {
+        transform.rotation = Quat::from_rotation_z(std::f32::consts::PI);
+    }
 }
 
 fn log_transitions(mut transitions: EventReader<StateTransitionEvent<PlayerState>>) {
