@@ -263,7 +263,6 @@ fn push_boulder(
     );
 
     if boulder_circle.aabb_2d().intersects(&player_rect) {
-        // info!("pushing boulnder");
         next_state.set(PlayerState::Push);
     }
 }
@@ -380,16 +379,30 @@ fn update_fatigue_marker(
     });
 }
 
-fn rotate(mut query: Query<(&mut Transform, &KinematicCharacterControllerOutput)>) {
+fn rotate(
+    mut query: Query<(&mut Transform, &KinematicCharacterControllerOutput)>,
+    rapier_context: Res<RapierContext>,
+) {
     if query.is_empty() {
         return;
     }
 
     let (mut transform, output) = query.single_mut();
-    if output.desired_translation.x > 0. {
-        transform.rotation = Quat::from_rotation_z(0.0);
-    } else if output.desired_translation.x < 0. {
-        transform.rotation = Quat::from_rotation_z(std::f32::consts::PI);
+    let ray_pos = Vec2::new(transform.translation.x, transform.translation.y);
+    let ray_dir = Vec2::new(0.0, -1.0);
+    let max_toi = 4.;
+    let solid = true;
+    let filter = QueryFilter::default();
+
+    if let Some((_, intersection)) = rapier_context.cast_ray_and_get_normal(ray_pos, ray_dir, max_toi, solid, filter) {
+        let hit_normal = intersection.normal;
+
+        let target_angle = hit_normal.y.atan2(hit_normal.x);
+        let smooth_angle = transform.rotation.lerp(Quat::from_rotation_z(target_angle), 0.1);
+        if output.grounded {
+            println!("Entity hit with normal {}", hit_normal);
+            transform.rotation = smooth_angle;
+        }
     }
 }
 
