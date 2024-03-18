@@ -29,11 +29,10 @@ enum Direction {
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<PlayerState>()
-            .add_systems(OnExit(GameState::MainMenu), start)
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(
-                OnExit(PlayerState::Setup),
-                (spawn_player, setup_fatigue_marker.after(spawn_player)),
+                OnExit(GameState::MainMenu),
+                (start, spawn_player, setup_fatigue_marker.after(spawn_player)),
             )
             .add_systems(
                 FixedUpdate,
