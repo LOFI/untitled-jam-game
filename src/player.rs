@@ -32,7 +32,11 @@ impl Plugin for PlayerPlugin {
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(
                 OnExit(GameState::MainMenu),
-                (start, spawn_player, setup_fatigue_marker.after(spawn_player)),
+                (
+                    start,
+                    spawn_player,
+                    setup_fatigue_marker.after(spawn_player),
+                ),
             )
             .add_systems(
                 FixedUpdate,
@@ -115,9 +119,9 @@ fn spawn_player(
         AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
         Player,
         Direction::Right,
-        RigidBody::KinematicPositionBased,
+        RigidBody::Dynamic,
         KinematicCharacterController::default(),
-        Collider::capsule_y(16.0, 16.0),
+        Collider::cuboid(16.0, 16.0),
     ));
 }
 
@@ -394,11 +398,15 @@ fn rotate(
     let solid = true;
     let filter = QueryFilter::default();
 
-    if let Some((_, intersection)) = rapier_context.cast_ray_and_get_normal(ray_pos, ray_dir, max_toi, solid, filter) {
+    if let Some((_, intersection)) =
+        rapier_context.cast_ray_and_get_normal(ray_pos, ray_dir, max_toi, solid, filter)
+    {
         let hit_normal = intersection.normal;
 
         let target_angle = hit_normal.y.atan2(hit_normal.x);
-        let smooth_angle = transform.rotation.lerp(Quat::from_rotation_z(target_angle), 0.1);
+        let smooth_angle = transform
+            .rotation
+            .lerp(Quat::from_rotation_z(target_angle), 0.1);
         if output.grounded {
             println!("Entity hit with normal {}", hit_normal);
             transform.rotation = smooth_angle;
