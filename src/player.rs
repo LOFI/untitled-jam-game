@@ -54,6 +54,7 @@ impl Plugin for PlayerPlugin {
                     walk_animation.run_if(in_state(PlayerState::Walk)),
                     push_animation.run_if(in_state(PlayerState::Push)),
                     update_direction,
+                    log_transitions,
                 ),
             );
     }
@@ -377,4 +378,13 @@ fn update_fatigue_marker(
         translation: player.single().translation + Vec3::new(0.0, 32.0, 0.0),
         ..default()
     });
+}
+
+fn log_transitions(mut transitions: EventReader<StateTransitionEvent<PlayerState>>) {
+    for transition in transitions.read() {
+        info!(
+            "transition: {:?} => {:?}",
+            transition.before, transition.after
+        );
+    }
 }

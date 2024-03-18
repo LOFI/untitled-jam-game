@@ -77,7 +77,7 @@ fn main() {
         ))
         .add_plugins((AnimationPlugin, BoulderPlugin, CameraPlugin, PlayerPlugin))
         // .add_plugins(WorldInspectorPlugin::new()) // Egui editor
-        .add_systems(Update, (movement, main_menu_button_system))
+        .add_systems(Update, (movement, main_menu_button_system, log_transitions))
         .add_systems(Update, bevy::window::close_on_esc)
         .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_walls))
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
@@ -318,5 +318,14 @@ fn main_menu_button_system(
                 text.sections[0].style.font_size = 25.0;
             }
         }
+    }
+}
+
+fn log_transitions(mut transitions: EventReader<StateTransitionEvent<GameState>>) {
+    for transition in transitions.read() {
+        info!(
+            "transition: {:?} => {:?}",
+            transition.before, transition.after
+        );
     }
 }
