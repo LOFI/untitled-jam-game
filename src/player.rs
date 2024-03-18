@@ -123,8 +123,8 @@ fn spawn_player(
         KinematicCharacterController {
             // Don’t allow climbing slopes larger than 60 degrees.
             max_slope_climb_angle: 60.0_f32.to_radians(),
-            // Automatically slide down on slopes smaller than 30 degrees.
-            min_slope_slide_angle: 30.0_f32.to_radians(),
+            // Automatically slide down on slopes smaller than 45 degrees.
+            min_slope_slide_angle: 45.0_f32.to_radians(),
             ..default()
         },
         Collider::cuboid(16.0, 16.0),
