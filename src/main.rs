@@ -144,7 +144,7 @@ fn spawn_walls(mut commands: Commands) {
             transform: Transform {
                 translation: Vec3::new(150., -200., 0.),
                 scale: Vec3::new(20., WINDOW_HEIGHT, 1.),
-                rotation: Quat::from_rotation_z(PI / 1.5),
+                rotation: Quat::from_rotation_z(-75_f32.to_radians()),
             },
             ..default()
         })
