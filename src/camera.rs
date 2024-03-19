@@ -89,4 +89,5 @@ fn move_camera(
     let transform = player_query.single().0;
 
     camera.0.translation.x = transform.translation.x;
+    camera.0.translation.y = transform.translation.y + WINDOW_HEIGHT / 5.;
 }

@@ -1,6 +1,7 @@
 mod animation;
 mod boulder;
 mod camera;
+mod ground;
 mod player;
 
 use bevy::asset::AssetMetaCheck;
@@ -14,6 +15,7 @@ use bevy_rapier2d::prelude::*;
 use animation::AnimationPlugin;
 use boulder::BoulderPlugin;
 use camera::{CameraPlugin, UI_LAYER};
+use ground::GroundPlugin;
 use player::PlayerPlugin;
 
 pub const WINDOW_WIDTH: f32 = 640.;
@@ -22,7 +24,6 @@ const WINDOW_BOTTOM_Y: f32 = WINDOW_HEIGHT / -2.;
 const WINDOW_LEFT_X: f32 = WINDOW_WIDTH / -2.;
 
 const COLOR_BACKGROUND: Color = Color::BLACK;
-const COLOR_FLOOR: Color = Color::GREEN;
 const COLOR_WALL: Color = Color::WHITE;
 
 #[derive(Resource)]
@@ -74,12 +75,11 @@ fn main() {
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
             RapierDebugRenderPlugin::default(),
         ))
-        .add_plugins((AnimationPlugin, BoulderPlugin, CameraPlugin, PlayerPlugin))
+        .add_plugins((AnimationPlugin, BoulderPlugin, CameraPlugin, GroundPlugin, PlayerPlugin))
         // .add_plugins(WorldInspectorPlugin::new()) // Egui editor
         .add_systems(Update, (movement, main_menu_button_system, log_transitions))
         .add_systems(Update, bevy::window::close_on_esc)
         // .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_wall))
-        .add_systems(OnEnter(GameState::InGame), spawn_floor)
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
         .add_systems(
             OnExit(GameState::MainMenu),
@@ -97,29 +97,6 @@ fn movement(keyboard_input: Res<ButtonInput<KeyCode>>, mut events: EventWriter<P
         events.send(PlayerInputEvent::Idle);
     }
 }
-
-fn spawn_floor(mut commands: Commands) {
-    // Slope
-    commands
-        .spawn(SpriteBundle {
-            sprite: Sprite {
-                color: COLOR_FLOOR,
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(0., -300., 0.),
-                scale: Vec3::new(200., WINDOW_WIDTH * 4., 1.),
-                rotation: Quat::from_rotation_z(-1.5),
-            },
-            ..default()
-        })
-        .insert(Ground)
-        .insert(RigidBody::KinematicPositionBased)
-        .insert(Collider::cuboid(0.5, 0.5));
-}
-
-#[derive(Component)]
-struct Ground;
 
 fn spawn_wall(mut commands: Commands) {
     commands
