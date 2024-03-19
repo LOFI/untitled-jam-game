@@ -33,12 +33,17 @@ impl Plugin for PlayerPlugin {
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(
                 OnExit(GameState::MainMenu),
-                (start, spawn_player, setup_fatigue_marker.after(spawn_player)),
+                (
+                    start,
+                    spawn_player,
+                    setup_fatigue_marker.after(spawn_player),
+                ),
             )
             .add_systems(
                 FixedUpdate,
                 (
                     fall,
+                    hurt,
                     movement,
                     push_boulder,
                     update_sprite_direction,
@@ -63,6 +68,12 @@ impl Plugin for PlayerPlugin {
 
 fn start(mut next_state: ResMut<NextState<PlayerState>>) {
     next_state.set(PlayerState::Setup);
+}
+
+fn hurt(mut next_state: ResMut<NextState<PlayerState>>, keyboard_input: Res<ButtonInput<KeyCode>>) {
+    if keyboard_input.pressed(KeyCode::Space) {
+        next_state.set(PlayerState::Hurt);
+    }
 }
 
 #[derive(Resource, Default)]
@@ -209,9 +220,9 @@ fn hurt_animation(
     let entity = query.single();
 
     let texture: Handle<Image> = asset_server.load("sprites/player/hurt-48x48.png");
-    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 4, 1, None, None);
     let texture_atlas_layout = texture_atlases.add(layout);
-    let animation_indices = AnimationIndices { first: 0, last: 9 };
+    let animation_indices = AnimationIndices { first: 0, last: 3 };
 
     commands
         .entity(entity)
