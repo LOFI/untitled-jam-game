@@ -140,7 +140,7 @@ fn spawn_player(
             ..default()
         },
         Collider::cuboid(12.0, 24.0),
-        AdditionalMassProperties::Mass(50.0),
+        AdditionalMassProperties::Mass(10.0),
     ));
 }
 
@@ -334,14 +334,14 @@ fn rotate(
 fn movement(
     time: Res<Time>,
     mut events: EventReader<PlayerInputEvent>,
-    mut query: Query<&mut KinematicCharacterController>,
+    mut query: Query<(&Transform, &mut KinematicCharacterController)>,
     mut next_state: ResMut<NextState<PlayerState>>,
 ) {
     if query.is_empty() {
         return;
     }
 
-    let mut player = query.single_mut();
+    let (transform, mut player) = query.single_mut();
     let mut movement = 0.0;
 
     for event in events.read() {
