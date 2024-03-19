@@ -6,12 +6,10 @@ mod player;
 use bevy::asset::AssetMetaCheck;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
-use bevy::sprite::Anchor;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_kira_audio::prelude::*;
 use bevy_pkv::PkvStore;
 use bevy_rapier2d::prelude::*;
-use std::f32::consts::PI;
 
 use animation::AnimationPlugin;
 use boulder::BoulderPlugin;
@@ -77,10 +75,11 @@ fn main() {
             RapierDebugRenderPlugin::default(),
         ))
         .add_plugins((AnimationPlugin, BoulderPlugin, CameraPlugin, PlayerPlugin))
-        .add_plugins(WorldInspectorPlugin::new()) // Egui editor
+        // .add_plugins(WorldInspectorPlugin::new()) // Egui editor
         .add_systems(Update, (movement, main_menu_button_system, log_transitions))
         .add_systems(Update, bevy::window::close_on_esc)
-        .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_wall))
+        // .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_wall))
+        .add_systems(OnEnter(GameState::InGame), spawn_floor)
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
         .add_systems(
             OnExit(GameState::MainMenu),
@@ -100,21 +99,21 @@ fn movement(keyboard_input: Res<ButtonInput<KeyCode>>, mut events: EventWriter<P
 }
 
 fn spawn_floor(mut commands: Commands) {
-    commands
-        .spawn(SpriteBundle {
-            sprite: Sprite {
-                color: COLOR_FLOOR,
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(0., WINDOW_BOTTOM_Y, 0.),
-                scale: Vec3::new(640., 20., 1.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(RigidBody::Fixed)
-        .insert(Collider::cuboid(0.5, 0.5));
+    // commands
+    //     .spawn(SpriteBundle {
+    //         sprite: Sprite {
+    //             color: COLOR_FLOOR,
+    //             ..default()
+    //         },
+    //         transform: Transform {
+    //             translation: Vec3::new(0., WINDOW_BOTTOM_Y, 0.),
+    //             scale: Vec3::new(WINDOW_WIDTH, 20., 1.),
+    //             ..default()
+    //         },
+    //         ..default()
+    //     })
+    //     .insert(RigidBody::Fixed)
+    //     .insert(Collider::cuboid(0.5, 0.5));
 
     // Slope
     commands
@@ -124,15 +123,19 @@ fn spawn_floor(mut commands: Commands) {
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(550., -300., 0.),
-                scale: Vec3::new(200., WINDOW_WIDTH * 2., 1.),
+                translation: Vec3::new(0., -300., 0.),
+                scale: Vec3::new(200., WINDOW_WIDTH * 4., 1.),
                 rotation: Quat::from_rotation_z(-1.5),
             },
             ..default()
         })
-        .insert(RigidBody::Fixed)
+        .insert(Ground)
+        .insert(RigidBody::KinematicPositionBased)
         .insert(Collider::cuboid(0.5, 0.5));
 }
+
+#[derive(Component)]
+struct Ground;
 
 fn spawn_wall(mut commands: Commands) {
     commands

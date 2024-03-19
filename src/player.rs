@@ -13,6 +13,7 @@ enum PlayerState {
     Walk,
     Push,
     Hurt,
+    Fall,
     Dead,
 }
 
@@ -56,6 +57,7 @@ impl Plugin for PlayerPlugin {
                 Update,
                 (
                     check_textures.run_if(in_state(PlayerState::Setup)),
+                    fall_animation.run_if(in_state(PlayerState::Fall)),
                     idle_animation.run_if(in_state(PlayerState::Idle)),
                     walk_animation.run_if(in_state(PlayerState::Walk)),
                     push_animation.run_if(in_state(PlayerState::Push)),
@@ -134,9 +136,11 @@ fn spawn_player(
             max_slope_climb_angle: 60.0_f32.to_radians(),
             // Automatically slide down on slopes smaller than 45 degrees.
             min_slope_slide_angle: 45.0_f32.to_radians(),
+            snap_to_ground: Some(CharacterLength::Absolute(0.5)),
+            slide: true,
             ..default()
         },
-        Collider::cuboid(16.0, 16.0),
+        Collider::cuboid(16.0, 24.0),
         AdditionalMassProperties::Mass(50.0),
     ));
 }
@@ -239,6 +243,29 @@ fn hurt_animation(
         .insert(animation_indices);
 }
 
+fn fall_animation(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    query: Query<Entity, With<Player>>,
+) {
+    if query.is_empty() {
+        return;
+    }
+    let entity = query.single();
+
+    let texture: Handle<Image> = asset_server.load("sprites/player/jumping-48x48.png");
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 3, 1, None, None);
+    let texture_atlas_layout = texture_atlases.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 2 };
+
+    commands
+        .entity(entity)
+        .insert(texture)
+        .insert(texture_atlas_layout)
+        .insert(animation_indices);
+}
+
 fn fall(time: Res<Time>, mut query: Query<&mut KinematicCharacterController>) {
     if query.is_empty() {
         return;
@@ -313,12 +340,17 @@ fn push_boulder(
 fn update_direction(
     mut commands: Commands,
     query: Query<(Entity, &KinematicCharacterControllerOutput)>,
+    mut next_state: ResMut<NextState<PlayerState>>,
 ) {
     if query.is_empty() {
         return;
     }
 
     let (player, output) = query.single();
+
+    if !output.grounded {
+        next_state.set(PlayerState::Fall);
+    }
 
     if output.desired_translation.x > 0. {
         commands.entity(player).insert(Direction::Right);
