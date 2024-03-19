@@ -4,7 +4,9 @@ mod camera;
 mod ground;
 mod player;
 
-use bevy::asset::AssetMetaCheck;
+use std::time::Duration;
+
+use bevy::asset::{self, AssetMetaCheck};
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -25,6 +27,9 @@ const WINDOW_LEFT_X: f32 = WINDOW_WIDTH / -2.;
 
 const COLOR_BACKGROUND: Color = Color::BLACK;
 const COLOR_WALL: Color = Color::WHITE;
+
+#[derive(Resource)]
+struct AudioHandle(Handle<AudioInstance>);
 
 #[derive(Resource)]
 struct BackgroundMusic;
@@ -75,9 +80,24 @@ fn main() {
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
             RapierDebugRenderPlugin::default(),
         ))
-        .add_plugins((AnimationPlugin, BoulderPlugin, CameraPlugin, GroundPlugin, PlayerPlugin))
+        .add_plugins((
+            AnimationPlugin,
+            BoulderPlugin,
+            CameraPlugin,
+            GroundPlugin,
+            PlayerPlugin,
+        ))
         // .add_plugins(WorldInspectorPlugin::new()) // Egui editor
-        .add_systems(Update, (movement, main_menu_button_system, log_transitions))
+        .add_systems(Startup, setup_background_music)
+        .add_systems(
+            Update,
+            (
+                audio_system,
+                main_menu_button_system,
+                movement,
+                log_transitions,
+            ),
+        )
         .add_systems(Update, bevy::window::close_on_esc)
         // .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_wall))
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
@@ -283,6 +303,42 @@ fn main_menu_button_system(
             }
         }
     }
+}
+
+fn audio_system(
+    state: Res<State<GameState>>,
+    mut background_music: ResMut<Assets<AudioInstance>>,
+    handle: Res<AudioHandle>,
+) {
+    if let Some(instance) = background_music.get_mut(&handle.0) {
+        match state.get() {
+            GameState::InGame => {
+                instance.set_volume(
+                    0.35,
+                    AudioTween::new(Duration::from_secs(2), AudioEasing::Linear),
+                );
+            }
+            _ => {
+                instance.set_volume(
+                    0.1,
+                    AudioTween::new(Duration::from_secs(2), AudioEasing::Linear),
+                );
+            }
+        }
+    }
+}
+
+fn setup_background_music(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
+) {
+    let handle = audio
+        .play(asset_server.load("music/Lost in the Dessert.ogg"))
+        .with_volume(0.35)
+        .looped()
+        .handle();
+    commands.insert_resource(AudioHandle(handle));
 }
 
 fn log_transitions(mut transitions: EventReader<StateTransitionEvent<GameState>>) {
