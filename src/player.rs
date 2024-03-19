@@ -14,7 +14,6 @@ enum PlayerState {
     Push,
     Hurt,
     Fall,
-    Dead,
 }
 
 pub struct PlayerPlugin;
@@ -48,7 +47,6 @@ impl Plugin for PlayerPlugin {
                 (
                     fall,
                     hurt,
-                    die,
                     movement,
                     rotate,
                     push_boulder,
@@ -66,7 +64,6 @@ impl Plugin for PlayerPlugin {
                     walk_animation.run_if(in_state(PlayerState::Walk)),
                     push_animation.run_if(in_state(PlayerState::Push)),
                     hurt_animation.run_if(in_state(PlayerState::Hurt)),
-                    die_animation.run_if(in_state(PlayerState::Hurt)),
                     update_direction,
                     log_transitions,
                 ),
@@ -265,29 +262,6 @@ fn fall_animation(
         .insert(animation_indices);
 }
 
-fn die_animation(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
-    query: Query<Entity, With<Player>>,
-) {
-    if query.is_empty() {
-        return;
-    }
-    let entity = query.single();
-
-    let texture: Handle<Image> = asset_server.load("sprites/player/death-48x48.png");
-    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 4, 1, None, None);
-    let texture_atlas_layout = texture_atlases.add(layout);
-    let animation_indices = AnimationIndices { first: 0, last: 3 };
-
-    commands
-        .entity(entity)
-        .insert(texture)
-        .insert(texture_atlas_layout)
-        .insert(animation_indices);
-}
-
 fn fall(time: Res<Time>, mut query: Query<&mut KinematicCharacterController>) {
     if query.is_empty() {
         return;
@@ -392,12 +366,6 @@ fn push_boulder(
 fn hurt(mut next_state: ResMut<NextState<PlayerState>>, keyboard_input: Res<ButtonInput<KeyCode>>) {
     if keyboard_input.pressed(KeyCode::KeyH) {
         next_state.set(PlayerState::Hurt);
-    }
-}
-
-fn die(mut next_state: ResMut<NextState<PlayerState>>, keyboard_input: Res<ButtonInput<KeyCode>>) {
-    if keyboard_input.pressed(KeyCode::KeyD) {
-        next_state.set(PlayerState::Dead);
     }
 }
 
