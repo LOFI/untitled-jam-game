@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::{GameState, WINDOW_BOTTOM_Y, WINDOW_WIDTH};
+use crate::{GameState, WINDOW_BOTTOM_Y, WINDOW_HEIGHT, WINDOW_WIDTH};
 
 const COLOR_FLOOR: Color = Color::GREEN;
 
@@ -28,7 +28,7 @@ fn spawn_floor(mut commands: Commands) {
             },
             transform: Transform {
                 translation: Vec3::new(0., WINDOW_BOTTOM_Y, 0.),
-                scale: Vec3::new(WINDOW_WIDTH, 40., 1.),
+                scale: Vec3::new(WINDOW_WIDTH * 2., WINDOW_HEIGHT / 2., 1.),
                 rotation: Quat::from_rotation_z(7.5_f32.to_radians()),
             },
             ..default()
