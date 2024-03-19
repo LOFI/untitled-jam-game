@@ -12,6 +12,7 @@ enum PlayerState {
     Idle,
     Walk,
     Push,
+    Hurt,
     Dead,
 }
 
@@ -32,12 +33,17 @@ impl Plugin for PlayerPlugin {
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(
                 OnExit(GameState::MainMenu),
-                (start, spawn_player, setup_fatigue_marker.after(spawn_player)),
+                (
+                    start,
+                    spawn_player,
+                    setup_fatigue_marker.after(spawn_player),
+                ),
             )
             .add_systems(
                 FixedUpdate,
                 (
                     fall,
+                    hurt,
                     movement,
                     push_boulder,
                     update_sprite_direction,
@@ -52,6 +58,7 @@ impl Plugin for PlayerPlugin {
                     idle_animation.run_if(in_state(PlayerState::Idle)),
                     walk_animation.run_if(in_state(PlayerState::Walk)),
                     push_animation.run_if(in_state(PlayerState::Push)),
+                    hurt_animation.run_if(in_state(PlayerState::Hurt)),
                     update_direction,
                     log_transitions,
                 ),
@@ -61,6 +68,12 @@ impl Plugin for PlayerPlugin {
 
 fn start(mut next_state: ResMut<NextState<PlayerState>>) {
     next_state.set(PlayerState::Setup);
+}
+
+fn hurt(mut next_state: ResMut<NextState<PlayerState>>, keyboard_input: Res<ButtonInput<KeyCode>>) {
+    if keyboard_input.pressed(KeyCode::Space) {
+        next_state.set(PlayerState::Hurt);
+    }
 }
 
 #[derive(Resource, Default)]
@@ -116,7 +129,7 @@ fn spawn_player(
         Direction::Right,
         RigidBody::KinematicPositionBased,
         KinematicCharacterController::default(),
-        Collider::capsule_y(16.0, 16.0),
+        Collider::capsule_y(8.0, 16.0),
     ));
 }
 
@@ -195,6 +208,29 @@ fn push_animation(
     }
 }
 
+fn hurt_animation(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    query: Query<Entity, With<Player>>,
+) {
+    if query.is_empty() {
+        return;
+    }
+    let entity = query.single();
+
+    let texture: Handle<Image> = asset_server.load("sprites/player/hurt-48x48.png");
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 4, 1, None, None);
+    let texture_atlas_layout = texture_atlases.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 3 };
+
+    commands
+        .entity(entity)
+        .insert(texture)
+        .insert(texture_atlas_layout)
+        .insert(animation_indices);
+}
+
 fn fall(time: Res<Time>, mut query: Query<&mut KinematicCharacterController>) {
     if query.is_empty() {
         return;
@@ -262,7 +298,6 @@ fn push_boulder(
     );
 
     if boulder_circle.aabb_2d().intersects(&player_rect) {
-        // info!("pushing boulnder");
         next_state.set(PlayerState::Push);
     }
 }
