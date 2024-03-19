@@ -29,6 +29,7 @@ fn spawn_boulder(
         })
         .insert(RigidBody::Dynamic)
         .insert(Collider::ball(64.))
+        .insert(AdditionalMassProperties::Mass(10.0))
         .insert(Boulder);
 }
 

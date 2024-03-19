@@ -45,6 +45,7 @@ impl Plugin for PlayerPlugin {
                     fall,
                     hurt,
                     movement,
+                    rotate,
                     push_boulder,
                     update_sprite_direction,
                     update_fatigue_marker,
@@ -127,9 +128,16 @@ fn spawn_player(
         AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
         Player,
         Direction::Right,
-        RigidBody::KinematicPositionBased,
-        KinematicCharacterController::default(),
-        Collider::capsule_y(8.0, 16.0),
+        RigidBody::Dynamic,
+        KinematicCharacterController {
+            // Don’t allow climbing slopes larger than 60 degrees.
+            max_slope_climb_angle: 60.0_f32.to_radians(),
+            // Automatically slide down on slopes smaller than 45 degrees.
+            min_slope_slide_angle: 45.0_f32.to_radians(),
+            ..default()
+        },
+        Collider::cuboid(16.0, 16.0),
+        AdditionalMassProperties::Mass(50.0),
     ));
 }
 
@@ -412,6 +420,36 @@ fn update_fatigue_marker(
         translation: player.single().translation + Vec3::new(0.0, 32.0, 0.0),
         ..default()
     });
+}
+
+fn rotate(
+    mut query: Query<(&mut Transform, &KinematicCharacterControllerOutput)>,
+    rapier_context: Res<RapierContext>,
+) {
+    if query.is_empty() {
+        return;
+    }
+
+    let (mut transform, output) = query.single_mut();
+    let ray_pos = Vec2::new(transform.translation.x, transform.translation.y);
+    let ray_dir = Vec2::new(0.0, -1.0);
+    let max_toi = 4.;
+    let solid = true;
+    let filter = QueryFilter::default();
+
+    if let Some((_, intersection)) =
+        rapier_context.cast_ray_and_get_normal(ray_pos, ray_dir, max_toi, solid, filter)
+    {
+        let hit_normal = intersection.normal;
+
+        let target_angle = hit_normal.y.atan2(hit_normal.x);
+        let smooth_angle = transform
+            .rotation
+            .lerp(Quat::from_rotation_z(target_angle), 0.1);
+        if output.grounded {
+            transform.rotation = smooth_angle;
+        }
+    }
 }
 
 fn log_transitions(mut transitions: EventReader<StateTransitionEvent<PlayerState>>) {
