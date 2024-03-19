@@ -28,6 +28,9 @@ enum Direction {
     Right,
 }
 
+#[derive(Component)]
+struct FatigueMarker;
+
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<PlayerState>()
@@ -45,6 +48,7 @@ impl Plugin for PlayerPlugin {
                 (
                     fall,
                     hurt,
+                    die,
                     movement,
                     rotate,
                     push_boulder,
@@ -62,6 +66,7 @@ impl Plugin for PlayerPlugin {
                     walk_animation.run_if(in_state(PlayerState::Walk)),
                     push_animation.run_if(in_state(PlayerState::Push)),
                     hurt_animation.run_if(in_state(PlayerState::Hurt)),
+                    die_animation.run_if(in_state(PlayerState::Hurt)),
                     update_direction,
                     log_transitions,
                 ),
@@ -71,12 +76,6 @@ impl Plugin for PlayerPlugin {
 
 fn start(mut next_state: ResMut<NextState<PlayerState>>) {
     next_state.set(PlayerState::Setup);
-}
-
-fn hurt(mut next_state: ResMut<NextState<PlayerState>>, keyboard_input: Res<ButtonInput<KeyCode>>) {
-    if keyboard_input.pressed(KeyCode::Space) {
-        next_state.set(PlayerState::Hurt);
-    }
 }
 
 #[derive(Resource, Default)]
@@ -140,7 +139,7 @@ fn spawn_player(
             slide: true,
             ..default()
         },
-        Collider::cuboid(16.0, 24.0),
+        Collider::cuboid(12.0, 24.0),
         AdditionalMassProperties::Mass(50.0),
     ));
 }
@@ -266,6 +265,29 @@ fn fall_animation(
         .insert(animation_indices);
 }
 
+fn die_animation(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    query: Query<Entity, With<Player>>,
+) {
+    if query.is_empty() {
+        return;
+    }
+    let entity = query.single();
+
+    let texture: Handle<Image> = asset_server.load("sprites/player/death-48x48.png");
+    let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 4, 1, None, None);
+    let texture_atlas_layout = texture_atlases.add(layout);
+    let animation_indices = AnimationIndices { first: 0, last: 3 };
+
+    commands
+        .entity(entity)
+        .insert(texture)
+        .insert(texture_atlas_layout)
+        .insert(animation_indices);
+}
+
 fn fall(time: Res<Time>, mut query: Query<&mut KinematicCharacterController>) {
     if query.is_empty() {
         return;
@@ -276,6 +298,36 @@ fn fall(time: Res<Time>, mut query: Query<&mut KinematicCharacterController>) {
     match player.translation {
         Some(vec) => player.translation = Some(Vec2::new(vec.x, movement)),
         None => player.translation = Some(Vec2::new(0.0, movement)),
+    }
+}
+
+fn rotate(
+    mut query: Query<(&mut Transform, &KinematicCharacterControllerOutput)>,
+    rapier_context: Res<RapierContext>,
+) {
+    if query.is_empty() {
+        return;
+    }
+
+    let (mut transform, output) = query.single_mut();
+    let ray_pos = Vec2::new(transform.translation.x, transform.translation.y);
+    let ray_dir = Vec2::new(0.0, -1.0);
+    let max_toi = 4.;
+    let solid = true;
+    let filter = QueryFilter::default();
+
+    if let Some((_, intersection)) =
+        rapier_context.cast_ray_and_get_normal(ray_pos, ray_dir, max_toi, solid, filter)
+    {
+        let hit_normal = intersection.normal;
+
+        let target_angle = hit_normal.y.atan2(hit_normal.x);
+        let smooth_angle = transform
+            .rotation
+            .lerp(Quat::from_rotation_z(target_angle), 0.1);
+        if output.grounded {
+            transform.rotation = smooth_angle;
+        }
     }
 }
 
@@ -337,6 +389,18 @@ fn push_boulder(
     }
 }
 
+fn hurt(mut next_state: ResMut<NextState<PlayerState>>, keyboard_input: Res<ButtonInput<KeyCode>>) {
+    if keyboard_input.pressed(KeyCode::KeyH) {
+        next_state.set(PlayerState::Hurt);
+    }
+}
+
+fn die(mut next_state: ResMut<NextState<PlayerState>>, keyboard_input: Res<ButtonInput<KeyCode>>) {
+    if keyboard_input.pressed(KeyCode::KeyD) {
+        next_state.set(PlayerState::Dead);
+    }
+}
+
 fn update_direction(
     mut commands: Commands,
     query: Query<(Entity, &KinematicCharacterControllerOutput)>,
@@ -374,9 +438,6 @@ fn update_sprite_direction(mut query: Query<(&mut Sprite, &Direction)>) {
         }
     }
 }
-
-#[derive(Component)]
-struct FatigueMarker;
 
 fn setup_fatigue_marker(
     mut commands: Commands,
@@ -420,27 +481,27 @@ fn update_fatigue_marker(
         return;
     }
 
-    let fatigue = 30.0;
+    let fatigue: f32 = 30.0;
 
     let (entity, mut atlas) = entity.single_mut();
 
-    match fatigue {
-        0.0..=12.5 => {
+    match fatigue.ceil() as usize {
+        0..=15 => {
             atlas.index = 0;
         }
-        12.6..=25.0 => {
+        16..=30 => {
             atlas.index = 1;
         }
-        25.1..=37.5 => {
+        31..=45 => {
             atlas.index = 2;
         }
-        37.6..=50.0 => {
+        46..=60 => {
             atlas.index = 4;
         }
-        50.1..=62.5 => {
+        61..=80 => {
             atlas.index = 5;
         }
-        62.6..=75.0 => {
+        81..=95 => {
             atlas.index = 6;
         }
         _ => {
@@ -452,36 +513,6 @@ fn update_fatigue_marker(
         translation: player.single().translation + Vec3::new(0.0, 32.0, 0.0),
         ..default()
     });
-}
-
-fn rotate(
-    mut query: Query<(&mut Transform, &KinematicCharacterControllerOutput)>,
-    rapier_context: Res<RapierContext>,
-) {
-    if query.is_empty() {
-        return;
-    }
-
-    let (mut transform, output) = query.single_mut();
-    let ray_pos = Vec2::new(transform.translation.x, transform.translation.y);
-    let ray_dir = Vec2::new(0.0, -1.0);
-    let max_toi = 4.;
-    let solid = true;
-    let filter = QueryFilter::default();
-
-    if let Some((_, intersection)) =
-        rapier_context.cast_ray_and_get_normal(ray_pos, ray_dir, max_toi, solid, filter)
-    {
-        let hit_normal = intersection.normal;
-
-        let target_angle = hit_normal.y.atan2(hit_normal.x);
-        let smooth_angle = transform
-            .rotation
-            .lerp(Quat::from_rotation_z(target_angle), 0.1);
-        if output.grounded {
-            transform.rotation = smooth_angle;
-        }
-    }
 }
 
 fn log_transitions(mut transitions: EventReader<StateTransitionEvent<PlayerState>>) {
