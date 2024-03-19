@@ -415,7 +415,6 @@ fn rotate(
             .rotation
             .lerp(Quat::from_rotation_z(target_angle), 0.1);
         if output.grounded {
-            println!("Entity hit with normal {}", hit_normal);
             transform.rotation = smooth_angle;
         }
     }

@@ -6,6 +6,7 @@ mod player;
 use bevy::asset::AssetMetaCheck;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
+use bevy::sprite::Anchor;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_kira_audio::prelude::*;
 use bevy_pkv::PkvStore;
@@ -76,10 +77,10 @@ fn main() {
             RapierDebugRenderPlugin::default(),
         ))
         .add_plugins((AnimationPlugin, BoulderPlugin, CameraPlugin, PlayerPlugin))
-        // .add_plugins(WorldInspectorPlugin::new()) // Egui editor
+        .add_plugins(WorldInspectorPlugin::new()) // Egui editor
         .add_systems(Update, (movement, main_menu_button_system, log_transitions))
         .add_systems(Update, bevy::window::close_on_esc)
-        .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_walls))
+        .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_wall))
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
         .add_systems(
             OnExit(GameState::MainMenu),
@@ -114,10 +115,26 @@ fn spawn_floor(mut commands: Commands) {
         })
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(0.5, 0.5));
+
+    // Slope
+    commands
+        .spawn(SpriteBundle {
+            sprite: Sprite {
+                color: COLOR_FLOOR,
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(550., -300., 0.),
+                scale: Vec3::new(200., WINDOW_WIDTH * 2., 1.),
+                rotation: Quat::from_rotation_z(-1.5),
+            },
+            ..default()
+        })
+        .insert(RigidBody::Fixed)
+        .insert(Collider::cuboid(0.5, 0.5));
 }
 
-fn spawn_walls(mut commands: Commands) {
-    // Left wall
+fn spawn_wall(mut commands: Commands) {
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
@@ -128,23 +145,6 @@ fn spawn_walls(mut commands: Commands) {
                 translation: Vec3::new(WINDOW_LEFT_X - 10., 0., 0.),
                 scale: Vec3::new(20., WINDOW_HEIGHT, 1.),
                 ..default()
-            },
-            ..default()
-        })
-        .insert(RigidBody::Fixed)
-        .insert(Collider::cuboid(0.5, 0.5));
-
-    // Right wall
-    commands
-        .spawn(SpriteBundle {
-            sprite: Sprite {
-                color: COLOR_WALL,
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(150., -200., 0.),
-                scale: Vec3::new(20., WINDOW_HEIGHT, 1.),
-                rotation: Quat::from_rotation_z(-75_f32.to_radians()),
             },
             ..default()
         })
