@@ -99,22 +99,6 @@ fn movement(keyboard_input: Res<ButtonInput<KeyCode>>, mut events: EventWriter<P
 }
 
 fn spawn_floor(mut commands: Commands) {
-    // commands
-    //     .spawn(SpriteBundle {
-    //         sprite: Sprite {
-    //             color: COLOR_FLOOR,
-    //             ..default()
-    //         },
-    //         transform: Transform {
-    //             translation: Vec3::new(0., WINDOW_BOTTOM_Y, 0.),
-    //             scale: Vec3::new(WINDOW_WIDTH, 20., 1.),
-    //             ..default()
-    //         },
-    //         ..default()
-    //     })
-    //     .insert(RigidBody::Fixed)
-    //     .insert(Collider::cuboid(0.5, 0.5));
-
     // Slope
     commands
         .spawn(SpriteBundle {
