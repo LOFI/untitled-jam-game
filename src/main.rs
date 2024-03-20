@@ -106,12 +106,9 @@ fn main() {
         .add_systems(Update, pause_menu_system.run_if(in_state(GameState::Pause)))
         .add_systems(OnExit(GameState::Pause), cleanup_pause_menu)
         .add_systems(OnExit(GameState::MainMenu), spawn_wall)
-        .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
+        .add_systems(OnEnter(GameState::MainMenu), setup_main_menu)
         .add_systems(Update, main_menu_button_system.run_if(in_state(GameState::MainMenu)))
-        .add_systems(
-            OnExit(GameState::MainMenu),
-            (cleanup_title, cleanup_main_menu),
-        )
+        .add_systems(OnExit(GameState::MainMenu), cleanup_main_menu)
         .run();
 }
 
@@ -146,7 +143,7 @@ fn spawn_wall(mut commands: Commands) {
 #[derive(Component)]
 struct TitleText;
 
-fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     let title_font: Handle<Font> = asset_server.load("fonts/Kaph-Regular.ttf");
     commands
         .spawn(NodeBundle {
@@ -176,15 +173,7 @@ fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
                 TitleText,
             ));
         });
-}
 
-fn cleanup_title(mut commands: Commands, query: Query<Entity, With<Text>>) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-}
-
-fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/PeaberryMono.ttf");
     let texture_handle: Handle<Image> = asset_server.load("ui/CGB02-purple_M_btn.png");
 
@@ -279,10 +268,14 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn cleanup_main_menu(
     mut commands: Commands,
-    interaction_query: Query<(Entity, &Interaction, &mut UiImage), With<Button>>,
+    interaction_query: Query<Entity, With<Button>>,
+    text_query: Query<Entity, With<Text>>
 ) {
-    for entity in &mut interaction_query.iter() {
-        commands.entity(entity.0).despawn_recursive();
+    for entity in &text_query {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in &interaction_query {
+        commands.entity(entity).despawn_recursive();
     }
 }
 

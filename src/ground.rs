@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::mesh::shape::Plane, sprite::MaterialMesh2dBundle};
 use bevy_rapier2d::prelude::*;
 
 use crate::{GameState, WINDOW_BOTTOM_Y, WINDOW_HEIGHT, WINDOW_WIDTH};
@@ -13,7 +13,7 @@ struct Ground;
 impl Plugin for GroundPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(OnEnter(GameState::InGame), spawn_floor)
+            .add_systems(OnEnter(GameState::InGame), spawn_ground)
             .add_systems(FixedUpdate, expand.run_if(in_state(GameState::InGame)));
     }
 }
@@ -40,6 +40,28 @@ fn spawn_floor(mut commands: Commands, asset_server: Res<AssetServer>, ground_qu
         .insert(Ground)
         .insert(RigidBody::KinematicPositionBased)
         .insert(Collider::cuboid(0.5, 0.5));
+}
+
+fn spawn_ground(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
+) {
+    commands
+        .spawn(MaterialMesh2dBundle {
+            mesh: meshes.add(Plane3d { normal: Direction3d::Y }).into(),
+            material: materials.add(Color::DARK_GREEN),
+            transform: Transform {
+                translation: Vec3::new(0., WINDOW_BOTTOM_Y, 0.),
+                rotation: Quat::from_rotation_z(7.5_f32.to_radians()),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Ground)
+        .insert(RigidBody::Fixed)
+        .insert(Collider::cuboid(WINDOW_WIDTH, 5.));
 }
 
 fn expand(
