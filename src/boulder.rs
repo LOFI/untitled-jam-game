@@ -1,4 +1,4 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
+use bevy::{asset, prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_rapier2d::{plugin::systems::RigidBodyWritebackComponents, prelude::*};
 
 pub struct BoulderPlugin;
@@ -39,11 +39,13 @@ fn spawn_boulder(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     commands
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Circle { radius: 64. }).into(),
-            material: materials.add(Color::GRAY),
+            // material: materials.add(Color::GRAY),
+            material: materials.add(asset_server.load("clay.png")),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         })

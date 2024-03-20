@@ -18,7 +18,16 @@ impl Plugin for GroundPlugin {
     }
 }
 
-fn spawn_floor(mut commands: Commands) {
+fn spawn_floor(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(SpriteBundle {
+        texture: asset_server.load("grass.png"),
+        transform: Transform {
+            translation: Vec3::new(0., 0., 0.),
+            scale: Vec3::new(200., 200., 1.),
+            ..default()
+        },
+        ..default()
+    });
     // Slope
     commands
         .spawn(SpriteBundle {
