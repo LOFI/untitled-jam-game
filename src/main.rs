@@ -4,6 +4,7 @@ mod camera;
 mod ground;
 mod player;
 
+use std::option;
 use std::time::Duration;
 
 use bevy::asset::{self, AssetMetaCheck};
@@ -95,18 +96,20 @@ fn main() {
             Update,
             (
                 audio_system,
-                main_menu_button_system,
                 movement,
                 log_transitions,
                 pause,
             ),
         )
         .add_systems(OnEnter(GameState::Pause), setup_pause_menu)
+        .add_systems(Update, pause_menu_system.run_if(in_state(GameState::Pause)))
         .add_systems(OnExit(GameState::Pause), cleanup_pause_menu)
         .add_systems(OnEnter(GameState::Options), setup_options_menu)
+        .add_systems(Update, options_menu_system.run_if(in_state(GameState::Options)))
         .add_systems(OnExit(GameState::Options), cleanup_options_menu)
         .add_systems(OnExit(GameState::MainMenu), spawn_wall)
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
+        .add_systems(Update, main_menu_button_system.run_if(in_state(GameState::MainMenu)))
         .add_systems(
             OnExit(GameState::MainMenu),
             (cleanup_title, cleanup_main_menu),
@@ -327,6 +330,8 @@ fn main_menu_button_system(
             Interaction::Pressed => {
                 if text.sections[0].value == "Play" {
                     state.set(GameState::InGame);
+                } else if text.sections[0].value == "Options" {
+                    state.set(GameState::Options);
                 } else if text.sections[0].value == "Quit" {
                     std::process::exit(0);
                 }
@@ -544,6 +549,33 @@ fn setup_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
+fn pause_menu_system(
+    mut state: ResMut<NextState<GameState>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut interaction_query: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
+    mut text_query: Query<&mut Text>,
+) {
+
+    for (interaction, children) in &mut interaction_query {
+        let mut text = text_query.get_mut(children[0]).unwrap();
+        match *interaction {
+            Interaction::Pressed => {
+                if text.sections[0].value == "Back to menu" {
+                    state.set(GameState::MainMenu);
+                } else if text.sections[0].value == "Back to game" {
+                    state.set(GameState::InGame);
+                }
+            }
+            Interaction::Hovered => {
+                text.sections[0].style.font_size = 30.0;
+            }
+            Interaction::None => {
+                text.sections[0].style.font_size = 25.0;
+            }
+        }
+    }
+}
+
 fn cleanup_pause_menu(
     mut commands: Commands,
     interaction_query: Query<(Entity, &Interaction, &mut UiImage), With<Button>>,
@@ -584,7 +616,7 @@ fn setup_options_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|parent| {
             parent.spawn((
                 TextBundle::from_section(
-                    "Paused".to_string(),
+                    "Options".to_string(),
                     TextStyle {
                         font_size: 60.0,
                         color: Color::WHITE,
@@ -656,7 +688,7 @@ fn setup_options_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Play".to_string(),
+                        "Volume".to_string(),
                         text_style.clone(),
                     ));
                 });
@@ -682,7 +714,7 @@ fn setup_options_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Options".to_string(),
+                        "Back to game".to_string(),
                         text_style.clone(),
                     ));
                 });
@@ -708,11 +740,38 @@ fn setup_options_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Back".to_string(),
+                        "Back to menu".to_string(),
                         text_style.clone(),
                     ));
                 });
         });
+}
+
+fn options_menu_system(
+    mut state: ResMut<NextState<GameState>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut interaction_query: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
+    mut text_query: Query<&mut Text>,
+) {
+
+    for (interaction, children) in &mut interaction_query {
+        let mut text = text_query.get_mut(children[0]).unwrap();
+        match *interaction {
+            Interaction::Pressed => {
+                if text.sections[0].value == "Back to menu" {
+                    state.set(GameState::MainMenu);
+                } else if text.sections[0].value == "Back to game" {
+                    state.set(GameState::InGame);
+                }
+            }
+            Interaction::Hovered => {
+                text.sections[0].style.font_size = 30.0;
+            }
+            Interaction::None => {
+                text.sections[0].style.font_size = 25.0;
+            }
+        }
+    }
 }
 
 fn cleanup_options_menu(
