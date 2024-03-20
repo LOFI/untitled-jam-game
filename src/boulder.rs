@@ -45,7 +45,7 @@ fn spawn_boulder(
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Circle { radius: 64. }).into(),
             // material: materials.add(Color::GRAY),
-            material: materials.add(asset_server.load("clay.png")),
+            material: materials.add(asset_server.load("dirt.png")),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         })

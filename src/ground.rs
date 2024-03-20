@@ -13,21 +13,16 @@ struct Ground;
 impl Plugin for GroundPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(OnExit(GameState::MainMenu), spawn_floor)
+            .add_systems(OnEnter(GameState::InGame), spawn_floor)
             .add_systems(FixedUpdate, expand.run_if(in_state(GameState::InGame)));
     }
 }
 
-fn spawn_floor(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(SpriteBundle {
-        texture: asset_server.load("grass.png"),
-        transform: Transform {
-            translation: Vec3::new(0., 0., 0.),
-            scale: Vec3::new(200., 200., 1.),
-            ..default()
-        },
-        ..default()
-    });
+fn spawn_floor(mut commands: Commands, asset_server: Res<AssetServer>, ground_query: Query<&Ground>) {
+    if !ground_query.is_empty() {
+        return;
+    }
+
     // Slope
     commands
         .spawn(SpriteBundle {
