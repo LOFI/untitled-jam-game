@@ -12,16 +12,27 @@ impl Plugin for BoulderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnExit(GameState::MainMenu), spawn_boulder)
             .add_systems(OnEnter(GameState::Pause), freeze_boulder)
+            .add_systems(OnExit(GameState::Pause), unfreeze_boulder)
             .add_systems(Update, fall);
     }
 }
 
-fn freeze_boulder(mut boulder: Query<&mut RigidBodyWritebackComponents, With<Boulder>>) {
+fn freeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulder>>) {
     if boulder.is_empty() {
         return;
     }
 
-    let mut boulder = boulder.single_mut();
+    commands.entity(boulder.single()).insert(RigidBody::Fixed);
+
+}
+
+fn unfreeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulder>>) {
+    if boulder.is_empty() {
+        return;
+    }
+
+    commands.entity(boulder.single()).insert(RigidBody::Dynamic);
+
 }
 
 fn spawn_boulder(
