@@ -50,6 +50,7 @@ pub enum GameState {
     Startup,
     MainMenu,
     InGame,
+    Pause,
     GameOver,
 }
 
@@ -96,10 +97,12 @@ fn main() {
                 main_menu_button_system,
                 movement,
                 log_transitions,
+                pause,
             ),
         )
-        .add_systems(Update, bevy::window::close_on_esc)
+        // .add_systems(Update, bevy::window::close_on_esc)
         // .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_wall))
+        .add_systems(OnExit(GameState::MainMenu), spawn_wall)
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
         .add_systems(
             OnExit(GameState::MainMenu),
@@ -127,7 +130,7 @@ fn spawn_wall(mut commands: Commands) {
             },
             transform: Transform {
                 translation: Vec3::new(WINDOW_LEFT_X - 10., 0., 0.),
-                scale: Vec3::new(20., WINDOW_HEIGHT, 1.),
+                scale: Vec3::new(20., WINDOW_HEIGHT * 2., 0.),
                 ..default()
             },
             ..default()
@@ -339,6 +342,24 @@ fn setup_background_music(
         .looped()
         .handle();
     commands.insert_resource(AudioHandle(handle));
+}
+
+fn pause(
+    current_state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        match current_state.get() {
+            GameState::InGame => {
+                next_state.set(GameState::Pause);
+            }
+            GameState::Pause => {
+                next_state.set(GameState::InGame);
+            }
+            _ => {}
+        }
+    }
 }
 
 fn log_transitions(mut transitions: EventReader<StateTransitionEvent<GameState>>) {
