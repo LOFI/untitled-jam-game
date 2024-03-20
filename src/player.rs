@@ -35,7 +35,7 @@ impl Plugin for PlayerPlugin {
         app.init_state::<PlayerState>()
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(
-                OnExit(PlayerState::Setup),
+                OnExit(GameState::MainMenu),
                 (
                     start,
                     spawn_player,

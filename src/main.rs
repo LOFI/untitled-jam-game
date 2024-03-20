@@ -52,7 +52,6 @@ pub enum GameState {
     MainMenu,
     InGame,
     Pause,
-    Options,
     GameOver,
 }
 
@@ -104,9 +103,6 @@ fn main() {
         .add_systems(OnEnter(GameState::Pause), setup_pause_menu)
         .add_systems(Update, pause_menu_system.run_if(in_state(GameState::Pause)))
         .add_systems(OnExit(GameState::Pause), cleanup_pause_menu)
-        .add_systems(OnEnter(GameState::Options), setup_options_menu)
-        .add_systems(Update, options_menu_system.run_if(in_state(GameState::Options)))
-        .add_systems(OnExit(GameState::Options), cleanup_options_menu)
         .add_systems(OnExit(GameState::MainMenu), spawn_wall)
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
         .add_systems(Update, main_menu_button_system.run_if(in_state(GameState::MainMenu)))
@@ -272,32 +268,6 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Options".to_string(),
-                        text_style.clone(),
-                    ));
-                });
-
-            parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(150.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
-                            ..default()
-                        },
-                        image: texture_handle.clone().into(),
-                        ..default()
-                    },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
                         "Quit".to_string(),
                         text_style.clone(),
                     ));
@@ -330,8 +300,6 @@ fn main_menu_button_system(
             Interaction::Pressed => {
                 if text.sections[0].value == "Play" {
                     state.set(GameState::InGame);
-                } else if text.sections[0].value == "Options" {
-                    state.set(GameState::Options);
                 } else if text.sections[0].value == "Quit" {
                     std::process::exit(0);
                 }
@@ -490,14 +458,14 @@ fn setup_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Play".to_string(),
+                        "Back".to_string(),
                         text_style.clone(),
                     ));
                 });
 
             parent
                 .spawn((
-                    ButtonBundle {
+                    TextBundle {
                         style: Style {
                             align_items: AlignItems::Center,
                             justify_content: JustifyContent::Center,
@@ -509,14 +477,13 @@ fn setup_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                             },
                             ..default()
                         },
-                        image: texture_handle.clone().into(),
                         ..default()
                     },
                     ImageScaleMode::Sliced(slicer.clone()),
                 ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Options".to_string(),
+                        "Volume: +/-".to_string(),
                         text_style.clone(),
                     ));
                 });
@@ -560,10 +527,10 @@ fn pause_menu_system(
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Pressed => {
-                if text.sections[0].value == "Back to menu" {
-                    state.set(GameState::MainMenu);
-                } else if text.sections[0].value == "Back to game" {
+                if text.sections[0].value == "Back" {
                     state.set(GameState::InGame);
+                } else if text.sections[0].value == "Give Up" {
+                    state.set(GameState::MainMenu);
                 }
             }
             Interaction::Hovered => {
@@ -595,194 +562,5 @@ fn log_transitions(mut transitions: EventReader<StateTransitionEvent<GameState>>
             "transition: {:?} => {:?}",
             transition.before, transition.after
         );
-    }
-}
-
-fn setup_options_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let title_font: Handle<Font> = asset_server.load("fonts/Kaph-Regular.ttf");
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                flex_direction: FlexDirection::Column,
-                top: Val::Px(-100.),
-                ..default()
-            },
-            ..default()
-        })
-        .with_children(|parent| {
-            parent.spawn((
-                TextBundle::from_section(
-                    "Options".to_string(),
-                    TextStyle {
-                        font_size: 60.0,
-                        color: Color::WHITE,
-                        font: title_font,
-                    },
-                )
-                .with_text_justify(JustifyText::Center),
-                UI_LAYER,
-                TitleText,
-            ));
-        });
-
-    let font = asset_server.load("fonts/PeaberryMono.ttf");
-    let texture_handle: Handle<Image> = asset_server.load("ui/CGB02-purple_M_btn.png");
-
-    let text_style = TextStyle {
-        color: Color::WHITE,
-        font_size: 25.0,
-        font,
-    };
-
-    let slicer = TextureSlicer {
-        border: BorderRect::square(16.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 1.,
-    };
-
-    commands
-        .spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    flex_direction: FlexDirection::Column,
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    margin: UiRect {
-                        left: Val::Px(0.),
-                        right: Val::Px(0.),
-                        top: Val::Px(20.),
-                        bottom: Val::Px(0.),
-                    },
-                    ..default()
-                },
-                ..default()
-            },
-            UI_LAYER,
-        ))
-        .with_children(|parent| {
-            parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(150.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
-                            ..default()
-                        },
-                        image: texture_handle.clone().into(),
-                        ..default()
-                    },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Volume".to_string(),
-                        text_style.clone(),
-                    ));
-                });
-
-            parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(150.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
-                            ..default()
-                        },
-                        image: texture_handle.clone().into(),
-                        ..default()
-                    },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Back to game".to_string(),
-                        text_style.clone(),
-                    ));
-                });
-
-            parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(150.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
-                            ..default()
-                        },
-                        image: texture_handle.clone().into(),
-                        ..default()
-                    },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Back to menu".to_string(),
-                        text_style.clone(),
-                    ));
-                });
-        });
-}
-
-fn options_menu_system(
-    mut state: ResMut<NextState<GameState>>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut interaction_query: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
-    mut text_query: Query<&mut Text>,
-) {
-
-    for (interaction, children) in &mut interaction_query {
-        let mut text = text_query.get_mut(children[0]).unwrap();
-        match *interaction {
-            Interaction::Pressed => {
-                if text.sections[0].value == "Back to menu" {
-                    state.set(GameState::MainMenu);
-                } else if text.sections[0].value == "Back to game" {
-                    state.set(GameState::InGame);
-                }
-            }
-            Interaction::Hovered => {
-                text.sections[0].style.font_size = 30.0;
-            }
-            Interaction::None => {
-                text.sections[0].style.font_size = 25.0;
-            }
-        }
-    }
-}
-
-fn cleanup_options_menu(
-    mut commands: Commands,
-    interaction_query: Query<(Entity, &Interaction, &mut UiImage), With<Button>>,
-    text_query: Query<Entity, With<Text>>
-) {
-    for entity in &text_query {
-        commands.entity(entity).despawn_recursive();
-    }
-    for entity in &mut interaction_query.iter() {
-        commands.entity(entity.0).despawn_recursive();
     }
 }
