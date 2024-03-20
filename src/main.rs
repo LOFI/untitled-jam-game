@@ -50,6 +50,7 @@ pub enum GameState {
     Startup,
     MainMenu,
     InGame,
+    Pause,
     GameOver,
 }
 
@@ -96,10 +97,12 @@ fn main() {
                 main_menu_button_system,
                 movement,
                 log_transitions,
+                pause,
             ),
         )
-        .add_systems(Update, bevy::window::close_on_esc)
-        // .add_systems(OnEnter(GameState::InGame), (spawn_floor, spawn_wall))
+        .add_systems(OnEnter(GameState::Pause), setup_pause_menu)
+        .add_systems(OnExit(GameState::Pause), cleanup_pause_menu)
+        .add_systems(OnExit(GameState::MainMenu), spawn_wall)
         .add_systems(OnEnter(GameState::MainMenu), (setup_title, setup_main_menu))
         .add_systems(
             OnExit(GameState::MainMenu),
@@ -107,6 +110,169 @@ fn main() {
         )
         .run();
 }
+
+fn setup_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let title_font: Handle<Font> = asset_server.load("fonts/Kaph-Regular.ttf");
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                top: Val::Px(-100.),
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn((
+                TextBundle::from_section(
+                    "Paused".to_string(),
+                    TextStyle {
+                        font_size: 60.0,
+                        color: Color::WHITE,
+                        font: title_font,
+                    },
+                )
+                .with_text_justify(JustifyText::Center),
+                UI_LAYER,
+                TitleText,
+            ));
+        });
+
+    let font = asset_server.load("fonts/PeaberryMono.ttf");
+    let texture_handle: Handle<Image> = asset_server.load("ui/CGB02-purple_M_btn.png");
+
+    let text_style = TextStyle {
+        color: Color::WHITE,
+        font_size: 25.0,
+        font,
+    };
+
+    let slicer = TextureSlicer {
+        border: BorderRect::square(16.0),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: 1.,
+    };
+
+    commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    margin: UiRect {
+                        left: Val::Px(0.),
+                        right: Val::Px(0.),
+                        top: Val::Px(20.),
+                        bottom: Val::Px(0.),
+                    },
+                    ..default()
+                },
+                ..default()
+            },
+            UI_LAYER,
+        ))
+        .with_children(|parent| {
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            width: Val::Px(150.),
+                            height: Val::Px(50.),
+                            margin: UiRect {
+                                top: Val::Px(10.),
+                                ..default()
+                            },
+                            ..default()
+                        },
+                        image: texture_handle.clone().into(),
+                        ..default()
+                    },
+                    ImageScaleMode::Sliced(slicer.clone()),
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Play".to_string(),
+                        text_style.clone(),
+                    ));
+                });
+
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            width: Val::Px(150.),
+                            height: Val::Px(50.),
+                            margin: UiRect {
+                                top: Val::Px(10.),
+                                ..default()
+                            },
+                            ..default()
+                        },
+                        image: texture_handle.clone().into(),
+                        ..default()
+                    },
+                    ImageScaleMode::Sliced(slicer.clone()),
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Options".to_string(),
+                        text_style.clone(),
+                    ));
+                });
+
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            width: Val::Px(150.),
+                            height: Val::Px(50.),
+                            margin: UiRect {
+                                top: Val::Px(10.),
+                                ..default()
+                            },
+                            ..default()
+                        },
+                        image: texture_handle.clone().into(),
+                        ..default()
+                    },
+                    ImageScaleMode::Sliced(slicer.clone()),
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Give Up".to_string(),
+                        text_style.clone(),
+                    ));
+                });
+        });
+}
+
+fn cleanup_pause_menu(
+    mut commands: Commands,
+    interaction_query: Query<(Entity, &Interaction, &mut UiImage), With<Button>>,
+    text_query: Query<Entity, With<Text>>
+) {
+    for entity in &text_query {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in &mut interaction_query.iter() {
+        commands.entity(entity.0).despawn_recursive();
+    }
+}
+
 
 fn movement(keyboard_input: Res<ButtonInput<KeyCode>>, mut events: EventWriter<PlayerInputEvent>) {
     if keyboard_input.pressed(KeyCode::ArrowLeft) {
@@ -127,7 +293,7 @@ fn spawn_wall(mut commands: Commands) {
             },
             transform: Transform {
                 translation: Vec3::new(WINDOW_LEFT_X - 10., 0., 0.),
-                scale: Vec3::new(20., WINDOW_HEIGHT, 1.),
+                scale: Vec3::new(20., WINDOW_HEIGHT * 2., 0.),
                 ..default()
             },
             ..default()
@@ -206,7 +372,7 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                     margin: UiRect {
                         left: Val::Px(0.),
                         right: Val::Px(0.),
-                        top: Val::Px(20.),
+                        top: Val::Px(30.),
                         bottom: Val::Px(0.),
                     },
                     ..default()
@@ -224,6 +390,10 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                             justify_content: JustifyContent::Center,
                             width: Val::Px(150.),
                             height: Val::Px(50.),
+                            margin: UiRect {
+                                top: Val::Px(10.),
+                                ..default()
+                            },
                             ..default()
                         },
                         image: texture_handle.clone().into(),
@@ -234,6 +404,32 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         "Play".to_string(),
+                        text_style.clone(),
+                    ));
+                });
+
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            width: Val::Px(150.),
+                            height: Val::Px(50.),
+                            margin: UiRect {
+                                top: Val::Px(10.),
+                                ..default()
+                            },
+                            ..default()
+                        },
+                        image: texture_handle.clone().into(),
+                        ..default()
+                    },
+                    ImageScaleMode::Sliced(slicer.clone()),
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Options".to_string(),
                         text_style.clone(),
                     ));
                 });
@@ -339,6 +535,24 @@ fn setup_background_music(
         .looped()
         .handle();
     commands.insert_resource(AudioHandle(handle));
+}
+
+fn pause(
+    current_state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        match current_state.get() {
+            GameState::InGame => {
+                next_state.set(GameState::Pause);
+            }
+            GameState::Pause => {
+                next_state.set(GameState::InGame);
+            }
+            _ => {}
+        }
+    }
 }
 
 fn log_transitions(mut transitions: EventReader<StateTransitionEvent<GameState>>) {

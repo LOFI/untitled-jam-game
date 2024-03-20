@@ -1,5 +1,5 @@
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
-use bevy_rapier2d::prelude::*;
+use bevy_rapier2d::{plugin::systems::RigidBodyWritebackComponents, prelude::*};
 
 pub struct BoulderPlugin;
 
@@ -11,8 +11,28 @@ pub struct Boulder;
 impl Plugin for BoulderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnExit(GameState::MainMenu), spawn_boulder)
+            .add_systems(OnEnter(GameState::Pause), freeze_boulder)
+            .add_systems(OnExit(GameState::Pause), unfreeze_boulder)
             .add_systems(Update, fall);
     }
+}
+
+fn freeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulder>>) {
+    if boulder.is_empty() {
+        return;
+    }
+
+    commands.entity(boulder.single()).insert(RigidBody::Fixed);
+
+}
+
+fn unfreeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulder>>) {
+    if boulder.is_empty() {
+        return;
+    }
+
+    commands.entity(boulder.single()).insert(RigidBody::Dynamic);
+
 }
 
 fn spawn_boulder(
