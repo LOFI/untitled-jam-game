@@ -11,8 +11,8 @@ pub struct Boulder;
 impl Plugin for BoulderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnExit(GameState::MainMenu), spawn_boulder)
-            .add_systems(OnEnter(GameState::Pause), freeze_boulder)
-            .add_systems(OnExit(GameState::Pause), unfreeze_boulder)
+            .add_systems(OnExit(GameState::InGame), freeze_boulder)
+            .add_systems(OnEnter(GameState::InGame), unfreeze_boulder)
             .add_systems(Update, fall);
     }
 }
