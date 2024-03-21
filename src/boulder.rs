@@ -23,7 +23,6 @@ fn freeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulde
     }
 
     commands.entity(boulder.single()).insert(RigidBody::Fixed);
-
 }
 
 fn unfreeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulder>>) {
@@ -32,7 +31,6 @@ fn unfreeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boul
     }
 
     commands.entity(boulder.single()).insert(RigidBody::Dynamic);
-
 }
 
 fn spawn_boulder(
@@ -44,8 +42,7 @@ fn spawn_boulder(
     commands
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Circle { radius: 64. }).into(),
-            // material: materials.add(Color::GRAY),
-            material: materials.add(asset_server.load("dirt.png")),
+            material: materials.add(asset_server.load("textures/dirt.png")),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         })
