@@ -78,8 +78,8 @@ fn main() {
         )
         .add_plugins(AudioPlugin) // Kira audio
         .add_plugins((
-            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
-            RapierDebugRenderPlugin::default(),
+            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(64.),
+            // RapierDebugRenderPlugin::default(),
         ))
         .add_plugins((
             AnimationPlugin,
