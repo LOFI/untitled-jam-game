@@ -1,5 +1,5 @@
-use bevy::{asset, prelude::*, sprite::MaterialMesh2dBundle};
-use bevy_rapier2d::{plugin::systems::RigidBodyWritebackComponents, prelude::*};
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
+use bevy_rapier2d::prelude::*;
 
 pub struct BoulderPlugin;
 
@@ -12,12 +12,11 @@ impl Plugin for BoulderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnExit(GameState::MainMenu), spawn_boulder)
             .add_systems(OnExit(GameState::InGame), freeze_boulder)
-            .add_systems(OnEnter(GameState::InGame), unfreeze_boulder)
-            .add_systems(Update, fall);
+            .add_systems(OnEnter(GameState::InGame), unfreeze_boulder);
     }
 }
 
-fn freeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulder>>) {
+fn freeze_boulder(mut commands: Commands, boulder: Query<Entity, With<Boulder>>) {
     if boulder.is_empty() {
         return;
     }
@@ -25,7 +24,7 @@ fn freeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulde
     commands.entity(boulder.single()).insert(RigidBody::Fixed);
 }
 
-fn unfreeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulder>>) {
+fn unfreeze_boulder(mut commands: Commands, boulder: Query<Entity, With<Boulder>>) {
     if boulder.is_empty() {
         return;
     }
@@ -42,7 +41,8 @@ fn spawn_boulder(
     commands
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Circle { radius: 64. }).into(),
-            material: materials.add(asset_server.load("textures/dirt.png")),
+            material: materials.add(asset_server.load("textures/stone.png")),
+            // material: materials.add(Color::BLUE),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         })
@@ -51,5 +51,3 @@ fn spawn_boulder(
         .insert(AdditionalMassProperties::Mass(100.0))
         .insert(Boulder);
 }
-
-fn fall() {}
