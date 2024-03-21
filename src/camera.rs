@@ -8,6 +8,10 @@ use bevy::{
         view::RenderLayers,
     },
 };
+use bevy_parallax::{
+    CreateParallaxEvent, LayerData, LayerRepeat, LayerSpeed, ParallaxCameraComponent,
+    RepeatStrategy,
+};
 use bevy_rapier2d::prelude::*;
 
 use crate::{player::Player, GameState, WINDOW_HEIGHT, WINDOW_WIDTH};
@@ -22,7 +26,7 @@ impl Plugin for CameraPlugin {
 }
 
 #[derive(Component)]
-struct MainCamera;
+pub struct MainCamera;
 
 #[derive(Component)]
 struct UICamera;
@@ -33,6 +37,7 @@ fn spawn_camera(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut create_parallax: EventWriter<CreateParallaxEvent>,
 ) {
     let canvas_size = Extent3d {
         width: WINDOW_WIDTH as u32,
@@ -72,7 +77,82 @@ fn spawn_camera(
         UI_LAYER,
     ));
 
-    commands.spawn((Camera2dBundle::default(), MainCamera));
+    let camera = commands
+        .spawn((Camera2dBundle::default(), MainCamera))
+        .insert(ParallaxCameraComponent { render_layer: 0 })
+        .id();
+
+    create_parallax.send(CreateParallaxEvent {
+        camera,
+        layers_data: vec![
+            LayerData {
+                speed: LayerSpeed::Bidirectional(0., 0.),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                path: "layers/sky.png".to_string(),
+                tile_size: Vec2::new(384., 216.),
+                cols: 1,
+                rows: 1,
+                scale: Vec2::splat(5.),
+                z: 0.,
+                ..default()
+            },
+            LayerData {
+                speed: LayerSpeed::Bidirectional(0.9, 0.),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                path: "layers/far_mountains.png".to_string(),
+                tile_size: Vec2::new(384., 216.),
+                cols: 1,
+                rows: 1,
+                scale: Vec2::splat(5.),
+                z: 0.5,
+                ..default()
+            },
+            LayerData {
+                speed: LayerSpeed::Bidirectional(0.7, 0.),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                path: "layers/grassy_mountains.png".to_string(),
+                tile_size: Vec2::new(384., 216.),
+                cols: 1,
+                rows: 1,
+                scale: Vec2::splat(5.),
+                z: 1.,
+                ..default()
+            },
+            LayerData {
+                speed: LayerSpeed::Bidirectional(0.5, 0.),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                path: "layers/clouds_mid.png".to_string(),
+                tile_size: Vec2::new(384., 216.),
+                cols: 1,
+                rows: 1,
+                scale: Vec2::splat(5.),
+                z: 1.5,
+                ..default()
+            },
+            LayerData {
+                speed: LayerSpeed::Bidirectional(0.3, 0.),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                path: "layers/hill.png".to_string(),
+                tile_size: Vec2::new(384., 216.),
+                cols: 1,
+                rows: 1,
+                scale: Vec2::splat(5.),
+                z: 2.,
+                ..default()
+            },
+            LayerData {
+                speed: LayerSpeed::Bidirectional(0.1, 0.),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                path: "layers/clouds_front.png".to_string(),
+                tile_size: Vec2::new(384., 216.),
+                cols: 1,
+                rows: 1,
+                scale: Vec2::splat(5.),
+                z: 2.5,
+                ..default()
+            },
+        ],
+    });
 
     next_state.set(GameState::MainMenu);
 }

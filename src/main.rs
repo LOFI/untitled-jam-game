@@ -10,12 +10,16 @@ use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_kira_audio::prelude::*;
+use bevy_parallax::{
+    LayerData, LayerSpeed, ParallaxCameraComponent, ParallaxMoveEvent, ParallaxPlugin,
+    ParallaxSystems,
+};
 use bevy_pkv::PkvStore;
 use bevy_rapier2d::prelude::*;
 
 use animation::AnimationPlugin;
 use boulder::BoulderPlugin;
-use camera::{CameraPlugin, UI_LAYER};
+use camera::{CameraPlugin, MainCamera, UI_LAYER};
 use ground::GroundPlugin;
 use player::PlayerPlugin;
 
@@ -26,9 +30,6 @@ const WINDOW_LEFT_X: f32 = WINDOW_WIDTH / -2.;
 
 const COLOR_BACKGROUND: Color = Color::BLACK;
 const COLOR_WALL: Color = Color::WHITE;
-
-#[derive(Resource)]
-struct AudioHandle(Handle<AudioInstance>);
 
 #[derive(Resource)]
 struct BackgroundMusic;
@@ -81,6 +82,7 @@ fn main() {
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(64.),
             // RapierDebugRenderPlugin::default(),
         ))
+        .add_plugins(ParallaxPlugin)
         .add_plugins((
             AnimationPlugin,
             BoulderPlugin,
@@ -111,11 +113,29 @@ fn main() {
         .run();
 }
 
-fn movement(keyboard_input: Res<ButtonInput<KeyCode>>, mut events: EventWriter<PlayerInputEvent>) {
+fn movement(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut events: EventWriter<PlayerInputEvent>,
+    mut move_events: EventWriter<ParallaxMoveEvent>,
+    camera: Query<Entity, With<MainCamera>>,
+) {
+    if camera.is_empty() {
+        return;
+    }
+
+    let camera = camera.single();
     if keyboard_input.pressed(KeyCode::ArrowLeft) {
         events.send(PlayerInputEvent::MoveLeft);
+        move_events.send(ParallaxMoveEvent {
+            camera,
+            camera_move_speed: Vec2::new(-1.0, 0.1),
+        });
     } else if keyboard_input.pressed(KeyCode::ArrowRight) {
         events.send(PlayerInputEvent::MoveRight);
+        move_events.send(ParallaxMoveEvent {
+            camera,
+            camera_move_speed: Vec2::new(1.0, 0.1),
+        });
     } else {
         events.send(PlayerInputEvent::Idle);
     }
@@ -335,7 +355,6 @@ fn setup_background_music(mut commands: Commands, asset_server: Res<AssetServer>
                 mode: PlaybackMode::Loop,
                 ..default()
             },
-            ..default()
         },
         BGMusic,
     ));
@@ -484,7 +503,6 @@ fn setup_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn pause_menu_system(
     mut state: ResMut<NextState<GameState>>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut interaction_query: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
     mut text_query: Query<&mut Text>,
 ) {
