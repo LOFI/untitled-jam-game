@@ -142,7 +142,7 @@ fn spawn_player(
             ..default()
         },
         Collider::cuboid(12.0, 24.0),
-        AdditionalMassProperties::Mass(10.0),
+        AdditionalMassProperties::Mass(68.), // 150 lbs in kg
         Fatigue::default(),
         // For "tumbling" when fatigued
         ExternalForce {
@@ -336,11 +336,11 @@ fn movement(
     for event in events.read() {
         match event {
             PlayerInputEvent::MoveRight => {
-                movement += time.delta_seconds() * 100.0;
+                movement += time.delta_seconds() * 75.0;
                 next_state.set(PlayerState::Walk);
             }
             PlayerInputEvent::MoveLeft => {
-                movement -= time.delta_seconds() * 100.0;
+                movement -= time.delta_seconds() * 75.0;
                 next_state.set(PlayerState::Walk);
             }
             PlayerInputEvent::Idle => {
@@ -380,7 +380,6 @@ fn push_boulder(
 
 fn hurt(
     mut next_state: ResMut<NextState<PlayerState>>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut player: Query<(&mut ExternalForce, &Fatigue), With<Player>>,
 ) {
     let (mut force, Fatigue(fatigue)) = match player.get_single_mut() {
@@ -388,13 +387,13 @@ fn hurt(
         Err(_) => return,
     };
 
-    if *fatigue >= 99.0 || keyboard_input.pressed(KeyCode::KeyH) {
+    if *fatigue >= 99.0 {
         // FIXME: the backward motion will mean the player is likely "Falling"
         //   Need to hold the Hurt state for some period of time to avoid
         //   skipping over the animation entirely.
         next_state.set(PlayerState::Hurt);
 
-        force.torque = 20.;
+        force.torque = 120.;
     } else {
         force.torque = 0.;
     }
@@ -497,10 +496,10 @@ fn update_fatigue_marker(
         46..=60 => {
             atlas.index = 4;
         }
-        61..=80 => {
+        61..=75 => {
             atlas.index = 5;
         }
-        81..=95 => {
+        76..=90 => {
             atlas.index = 6;
         }
         _ => {
@@ -540,14 +539,10 @@ fn update_fatigue(
     };
 
     let updated = match state {
-        PlayerState::Push => fatigue.0 + 10.0 * time.delta_seconds(),
+        PlayerState::Push => fatigue.0 + 5.0 * time.delta_seconds(),
         _ => fatigue.0 - 25.0 * time.delta_seconds(),
     }
     .clamp(0.0, 100.0);
-
-    if updated != fatigue.0 {
-        info!("fatigue: {updated}");
-    }
 
     fatigue.0 = updated;
 }

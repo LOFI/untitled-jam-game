@@ -90,7 +90,12 @@ fn main() {
         ))
         // .add_plugins(WorldInspectorPlugin::new()) // Egui editor
         .add_systems(Startup, setup_background_music)
-        .add_systems(Update, (volume, movement, log_transitions, pause))
+        .add_systems(Update, (
+            volume,
+            movement,
+            pause,
+            // log_transitions,
+        ))
         .add_systems(OnEnter(GameState::Pause), setup_pause_menu)
         .add_systems(Update, pause_menu_system.run_if(in_state(GameState::Pause)))
         .add_systems(OnExit(GameState::Pause), cleanup_pause_menu)
@@ -699,5 +704,5 @@ fn cleanup(
     // for entity in &query {
     //     commands.entity(entity).despawn_recursive();
     // }
-    next_state.set(GameState::Startup);
+    next_state.set(GameState::InGame);
 }

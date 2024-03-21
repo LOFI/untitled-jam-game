@@ -48,6 +48,6 @@ fn spawn_boulder(
         })
         .insert(RigidBody::Dynamic)
         .insert(Collider::ball(64.))
-        .insert(AdditionalMassProperties::Mass(100.0))
+        .insert(AdditionalMassProperties::Mass(1134.))  // 2500 lbs in kg
         .insert(Boulder);
 }
