@@ -67,7 +67,8 @@ impl Plugin for PlayerPlugin {
                     update_direction,
                     log_transitions,
                 ),
-            );
+            )
+            .add_systems(OnEnter(GameState::Cleanup), cleanup);
     }
 }
 
@@ -489,5 +490,11 @@ fn log_transitions(mut transitions: EventReader<StateTransitionEvent<PlayerState
             "transition: {:?} => {:?}",
             transition.before, transition.after
         );
+    }
+}
+
+fn cleanup(mut commands: Commands, player: Query<Entity, With<Player>>) {
+    for entity in &player {
+        commands.entity(entity).despawn_recursive();
     }
 }

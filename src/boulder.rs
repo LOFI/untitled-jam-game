@@ -1,5 +1,5 @@
-use bevy::{asset, prelude::*, sprite::MaterialMesh2dBundle};
-use bevy_rapier2d::{plugin::systems::RigidBodyWritebackComponents, prelude::*};
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
+use bevy_rapier2d::prelude::*;
 
 pub struct BoulderPlugin;
 
@@ -13,11 +13,11 @@ impl Plugin for BoulderPlugin {
         app.add_systems(OnExit(GameState::MainMenu), spawn_boulder)
             .add_systems(OnExit(GameState::InGame), freeze_boulder)
             .add_systems(OnEnter(GameState::InGame), unfreeze_boulder)
-            .add_systems(Update, fall);
+            .add_systems(OnEnter(GameState::Cleanup), cleanup);
     }
 }
 
-fn freeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulder>>) {
+fn freeze_boulder(mut commands: Commands, boulder: Query<Entity, With<Boulder>>) {
     if boulder.is_empty() {
         return;
     }
@@ -25,7 +25,7 @@ fn freeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulde
     commands.entity(boulder.single()).insert(RigidBody::Fixed);
 }
 
-fn unfreeze_boulder(mut commands: Commands, mut boulder: Query<Entity, With<Boulder>>) {
+fn unfreeze_boulder(mut commands: Commands, boulder: Query<Entity, With<Boulder>>) {
     if boulder.is_empty() {
         return;
     }
@@ -52,4 +52,8 @@ fn spawn_boulder(
         .insert(Boulder);
 }
 
-fn fall() {}
+fn cleanup(mut commands: Commands, boulder: Query<Entity, With<Boulder>>) {
+    for entity in &boulder {
+        commands.entity(entity).despawn_recursive();
+    }
+}

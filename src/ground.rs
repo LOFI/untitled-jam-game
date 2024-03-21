@@ -16,6 +16,7 @@ struct Foreground;
 impl Plugin for GroundPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::InGame), (spawn_foreground, spawn_ground))
+            .add_systems(OnEnter(GameState::Cleanup), cleanup)
             .add_systems(
                 FixedUpdate,
                 (expand, keep_centered).run_if(in_state(GameState::InGame)),
@@ -99,5 +100,11 @@ fn keep_centered(
     ground.translation.x = player.translation.x;
     if output.grounded {
         ground.translation.y = player.translation.y - WINDOW_HEIGHT / 4. - 24.;
+    }
+}
+
+fn cleanup(mut commands: Commands, ground: Query<Entity, With<Ground>>) {
+    for entity in &ground {
+        commands.entity(entity).despawn_recursive();
     }
 }
