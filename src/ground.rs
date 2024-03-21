@@ -67,6 +67,8 @@ fn spawn_ground(
         })
         .insert(Ground)
         .insert(RigidBody::Fixed)
+        .insert(Friction::coefficient(0.7))
+        .insert(Damping { linear_damping: 0.7, angular_damping: 0.7 })
         .insert(Collider::cuboid(WINDOW_WIDTH, 1.));
 }
 

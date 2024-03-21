@@ -7,7 +7,7 @@ To play the game, run `cargo run` . Left and right arrows will move Sisyphus. `E
 ## Credits
 
 Background music: <https://joshuuu.itch.io/short-loopable-background-music>
-Boulder texture: <https://beefpuppy.itch.io/hptt>
+Boulder texture: <https://screamingbrainstudios.itch.io/tiny-texture-pack-2>
 Sprite texture: <https://zegley.itch.io/2d-platformermetroidvania-asset-pack>
 Title font: <https://ggbot.itch.io/kaph-font>
 Button font: <https://emhuo.itch.io/peaberry-pixel-font>

@@ -30,9 +30,13 @@ enum Direction {
 #[derive(Component)]
 struct FatigueMarker;
 
+#[derive(Component, Default, Reflect)]
+pub struct Fatigue(f32);
+
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<PlayerState>()
+            .register_type::<Fatigue>()
             .add_systems(OnEnter(PlayerState::Setup), load_textures)
             .add_systems(
                 OnExit(GameState::MainMenu),
@@ -65,7 +69,8 @@ impl Plugin for PlayerPlugin {
                     push_animation.run_if(in_state(PlayerState::Push)),
                     hurt_animation.run_if(in_state(PlayerState::Hurt)),
                     update_direction,
-                    log_transitions,
+                    // log_transitions,
+                    update_fatigue,
                 ),
             );
     }
@@ -137,7 +142,17 @@ fn spawn_player(
             ..default()
         },
         Collider::cuboid(12.0, 24.0),
-        AdditionalMassProperties::Mass(10.0),
+        AdditionalMassProperties::Mass(68.), // 150 lbs in kg
+        Fatigue::default(),
+        // For "tumbling" when fatigued
+        ExternalForce {
+            force: Vec2::new(-10.0, 10.0),
+            torque: 0.0,
+        },
+        Damping {
+            linear_damping: 1.0,
+            angular_damping: 0.7,
+        },
     ));
 }
 
@@ -315,17 +330,17 @@ fn movement(
         return;
     }
 
-    let (transform, mut player) = query.single_mut();
+    let (_transform, mut player) = query.single_mut();
     let mut movement = 0.0;
 
     for event in events.read() {
         match event {
             PlayerInputEvent::MoveRight => {
-                movement += time.delta_seconds() * 100.0;
+                movement += time.delta_seconds() * 75.0;
                 next_state.set(PlayerState::Walk);
             }
             PlayerInputEvent::MoveLeft => {
-                movement -= time.delta_seconds() * 100.0;
+                movement -= time.delta_seconds() * 75.0;
                 next_state.set(PlayerState::Walk);
             }
             PlayerInputEvent::Idle => {
@@ -363,9 +378,24 @@ fn push_boulder(
     }
 }
 
-fn hurt(mut next_state: ResMut<NextState<PlayerState>>, keyboard_input: Res<ButtonInput<KeyCode>>) {
-    if keyboard_input.pressed(KeyCode::KeyH) {
+fn hurt(
+    mut next_state: ResMut<NextState<PlayerState>>,
+    mut player: Query<(&mut ExternalForce, &Fatigue), With<Player>>,
+) {
+    let (mut force, Fatigue(fatigue)) = match player.get_single_mut() {
+        Ok(x) => x,
+        Err(_) => return,
+    };
+
+    if *fatigue >= 99.0 {
+        // FIXME: the backward motion will mean the player is likely "Falling"
+        //   Need to hold the Hurt state for some period of time to avoid
+        //   skipping over the animation entirely.
         next_state.set(PlayerState::Hurt);
+
+        force.torque = 120.;
+    } else {
+        force.torque = 0.;
     }
 }
 
@@ -432,7 +462,7 @@ fn setup_fatigue_marker(
             },
             texture,
             transform: Transform {
-                translation: player.single().translation + Vec3::new(0.0, -32.0, 0.0),
+                translation: player.single().translation + Vec3::new(0.0, 32.0, 100.0),
                 ..default()
             },
             ..default()
@@ -442,18 +472,18 @@ fn setup_fatigue_marker(
 
 fn update_fatigue_marker(
     mut commands: Commands,
-    player: Query<&Transform, With<Player>>,
+    player: Query<(&Transform, &Fatigue), With<Player>>,
     mut entity: Query<(Entity, &mut TextureAtlas), With<FatigueMarker>>,
 ) {
     if entity.is_empty() || player.is_empty() {
         return;
     }
 
-    let fatigue: f32 = 30.0;
+    let (transform, fatigue) = player.single();
 
     let (entity, mut atlas) = entity.single_mut();
 
-    match fatigue.ceil() as usize {
+    match fatigue.0.ceil() as usize {
         0..=15 => {
             atlas.index = 0;
         }
@@ -466,10 +496,10 @@ fn update_fatigue_marker(
         46..=60 => {
             atlas.index = 4;
         }
-        61..=80 => {
+        61..=75 => {
             atlas.index = 5;
         }
-        81..=95 => {
+        76..=90 => {
             atlas.index = 6;
         }
         _ => {
@@ -478,7 +508,7 @@ fn update_fatigue_marker(
     }
 
     commands.entity(entity).insert(Transform {
-        translation: player.single().translation + Vec3::new(0.0, 32.0, 0.0),
+        translation: transform.translation + Vec3::new(0.0, 32.0, 100.0),
         ..default()
     });
 }
@@ -490,4 +520,29 @@ fn log_transitions(mut transitions: EventReader<StateTransitionEvent<PlayerState
             transition.before, transition.after
         );
     }
+}
+
+fn update_fatigue(
+    time: Res<Time>,
+    mut query: Query<&mut Fatigue, With<Player>>,
+    next_state: Res<NextState<PlayerState>>,
+) {
+    let state = match next_state.0 {
+        Some(state) => state,
+        // Nothing to do without a state.
+        None => return,
+    };
+
+    let mut fatigue = match query.get_single_mut() {
+        Err(_) => return,
+        Ok(fatigue) => fatigue,
+    };
+
+    let updated = match state {
+        PlayerState::Push => fatigue.0 + 5.0 * time.delta_seconds(),
+        _ => fatigue.0 - 25.0 * time.delta_seconds(),
+    }
+    .clamp(0.0, 100.0);
+
+    fatigue.0 = updated;
 }
