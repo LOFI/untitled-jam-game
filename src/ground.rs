@@ -78,9 +78,10 @@ fn expand(
         return;
     }
     let player = player_query.single();
-    let mut ground = query.single_mut();
 
-    ground.scale.x += player.effective_translation.x.abs();
+    for mut ground in &mut query {
+        ground.scale.x += player.effective_translation.x.abs();
+    }
 }
 
 fn keep_centered(
