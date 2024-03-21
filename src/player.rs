@@ -47,9 +47,9 @@ impl Plugin for PlayerPlugin {
                 (
                     fall,
                     hurt,
-                    movement,
+                    movement.after(fall),
                     rotate,
-                    push_boulder,
+                    push_boulder.after(movement),
                     update_sprite_direction,
                     update_fatigue_marker,
                 )
