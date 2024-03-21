@@ -144,6 +144,15 @@ fn spawn_player(
         Collider::cuboid(12.0, 24.0),
         AdditionalMassProperties::Mass(10.0),
         Fatigue::default(),
+        // For "tumbling" when fatigued
+        ExternalForce {
+            force: Vec2::new(-10.0, 10.0),
+            torque: 0.0,
+        },
+        Damping {
+            linear_damping: 1.0,
+            angular_damping: 0.7,
+        },
     ));
 }
 
@@ -369,9 +378,25 @@ fn push_boulder(
     }
 }
 
-fn hurt(mut next_state: ResMut<NextState<PlayerState>>, keyboard_input: Res<ButtonInput<KeyCode>>) {
-    if keyboard_input.pressed(KeyCode::KeyH) {
+fn hurt(
+    mut next_state: ResMut<NextState<PlayerState>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut player: Query<(&mut ExternalForce, &Fatigue), With<Player>>,
+) {
+    let (mut force, Fatigue(fatigue)) = match player.get_single_mut() {
+        Ok(x) => x,
+        Err(_) => return,
+    };
+
+    if *fatigue >= 99.0 || keyboard_input.pressed(KeyCode::KeyH) {
+        // FIXME: the backward motion will mean the player is likely "Falling"
+        //   Need to hold the Hurt state for some period of time to avoid
+        //   skipping over the animation entirely.
         next_state.set(PlayerState::Hurt);
+
+        force.torque = 20.;
+    } else {
+        force.torque = 0.;
     }
 }
 
@@ -438,7 +463,7 @@ fn setup_fatigue_marker(
             },
             texture,
             transform: Transform {
-                translation: player.single().translation + Vec3::new(0.0, -32.0, 0.0),
+                translation: player.single().translation + Vec3::new(0.0, 32.0, 100.0),
                 ..default()
             },
             ..default()
@@ -484,7 +509,7 @@ fn update_fatigue_marker(
     }
 
     commands.entity(entity).insert(Transform {
-        translation: transform.translation + Vec3::new(0.0, 32.0, 0.0),
+        translation: transform.translation + Vec3::new(0.0, 32.0, 100.0),
         ..default()
     });
 }
