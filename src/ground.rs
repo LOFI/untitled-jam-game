@@ -1,4 +1,9 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
+use bevy::{
+    prelude::*,
+    reflect::TypePath,
+    render::render_resource::{AsBindGroup, ShaderRef},
+    sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
+};
 use bevy_rapier2d::prelude::*;
 
 use crate::{player::Player, GameState, WINDOW_BOTTOM_Y, WINDOW_HEIGHT, WINDOW_WIDTH};
@@ -15,7 +20,8 @@ struct Foreground;
 
 impl Plugin for GroundPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::InGame), (spawn_foreground, spawn_ground))
+        app.add_plugins(Material2dPlugin::<CustomMaterial>::default())
+            .add_systems(OnEnter(GameState::InGame), (spawn_foreground, spawn_ground))
             .add_systems(
                 FixedUpdate,
                 (expand, keep_centered).run_if(in_state(GameState::InGame)),
@@ -23,23 +29,48 @@ impl Plugin for GroundPlugin {
     }
 }
 
-fn spawn_foreground(mut commands: Commands, ground_query: Query<&Ground>) {
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+struct CustomMaterial {
+    #[uniform(0)]
+    color: Color,
+    #[texture(1)]
+    #[sampler(2)]
+    color_texture: Option<Handle<Image>>,
+}
+
+impl Material2d for CustomMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/custom_material_2d.wgsl".into()
+    }
+}
+
+fn spawn_foreground(
+    mut commands: Commands,
+    ground_query: Query<&Ground>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<CustomMaterial>>,
+    asset_server: Res<AssetServer>,
+) {
     if !ground_query.is_empty() {
         return;
     }
 
-    // Slope
     commands
-        .spawn(SpriteBundle {
-            sprite: Sprite {
-                color: COLOR_FLOOR,
-                ..default()
-            },
+        .spawn(MaterialMesh2dBundle {
+            mesh: meshes
+                .add(Rectangle {
+                    half_size: Vec2::new(WINDOW_WIDTH, WINDOW_HEIGHT / 4.),
+                })
+                .into(),
             transform: Transform {
                 translation: Vec3::new(0., WINDOW_BOTTOM_Y - WINDOW_HEIGHT / 4. - 12., 0.),
-                scale: Vec3::new(WINDOW_WIDTH * 2., WINDOW_HEIGHT / 2., 1.),
                 rotation: Quat::from_rotation_z(7.5_f32.to_radians()),
+                ..default()
             },
+            material: materials.add(CustomMaterial {
+                color: Color::WHITE,
+                color_texture: Some(asset_server.load("textures/grass.png")),
+            }),
             ..default()
         })
         .insert(Foreground);
@@ -68,7 +99,10 @@ fn spawn_ground(
         .insert(Ground)
         .insert(RigidBody::Fixed)
         .insert(Friction::coefficient(0.7))
-        .insert(Damping { linear_damping: 0.7, angular_damping: 0.7 })
+        .insert(Damping {
+            linear_damping: 0.7,
+            angular_damping: 0.7,
+        })
         .insert(Collider::cuboid(WINDOW_WIDTH, 1.));
 }
 
