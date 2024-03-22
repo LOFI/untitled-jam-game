@@ -340,7 +340,6 @@ fn setup_background_music(mut commands: Commands, asset_server: Res<AssetServer>
                 mode: PlaybackMode::Loop,
                 ..default()
             },
-            ..default()
         },
         BGMusic,
     ));
@@ -489,7 +488,6 @@ fn setup_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn pause_menu_system(
     mut state: ResMut<NextState<GameState>>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut interaction_query: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
     mut text_query: Query<&mut Text>,
 ) {
@@ -696,14 +694,7 @@ fn cleanup_give_up_menu(
     }
 }
 
-fn cleanup(
-    mut commands: Commands,
-    query: Query<Entity>,
-    mut next_state: ResMut<NextState<GameState>>,
-) {
-    // for entity in &query {
-    //     commands.entity(entity).despawn_recursive();
-    // }
+fn cleanup(mut next_state: ResMut<NextState<GameState>>) {
     next_state.set(GameState::InGame);
 }
 
