@@ -9,6 +9,7 @@ use bevy::audio::{PlaybackMode, Volume};
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
+use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_kira_audio::prelude::*;
 use bevy_pkv::PkvStore;
@@ -61,6 +62,9 @@ fn main() {
         .add_audio_channel::<BackgroundMusic>()
         .add_audio_channel::<SoundFX>()
         .add_event::<PlayerInputEvent>()
+        .add_plugins(EmbeddedAssetPlugin {
+            mode: PluginMode::ReplaceDefault
+        })
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
