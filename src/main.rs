@@ -8,6 +8,7 @@ use bevy::asset::AssetMetaCheck;
 use bevy::audio::{PlaybackMode, Volume};
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_kira_audio::prelude::*;
 use bevy_pkv::PkvStore;
@@ -26,9 +27,6 @@ const WINDOW_LEFT_X: f32 = WINDOW_WIDTH / -2.;
 
 const COLOR_BACKGROUND: Color = Color::BLACK;
 const COLOR_WALL: Color = Color::WHITE;
-
-#[derive(Resource)]
-struct AudioHandle(Handle<AudioInstance>);
 
 #[derive(Resource)]
 struct BackgroundMusic;
@@ -77,6 +75,7 @@ fn main() {
                 .set(ImagePlugin::default_nearest()), // keeps pixel art crisp
         )
         .add_plugins(AudioPlugin) // Kira audio
+        .add_plugins(TilemapPlugin) // ECS Tilemap
         .add_plugins((
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(64.),
             // RapierDebugRenderPlugin::default(),
@@ -89,13 +88,14 @@ fn main() {
             PlayerPlugin,
         ))
         // .add_plugins(WorldInspectorPlugin::new()) // Egui editor
-        .add_systems(Startup, setup_background_music)
-        .add_systems(Update, (
-            volume,
-            movement,
-            pause,
-            // log_transitions,
-        ))
+        .add_systems(Startup, (setup_background_music, spawn_background))
+        .add_systems(
+            Update,
+            (
+                volume, movement, pause,
+                // log_transitions,
+            ),
+        )
         .add_systems(OnEnter(GameState::Pause), setup_pause_menu)
         .add_systems(Update, pause_menu_system.run_if(in_state(GameState::Pause)))
         .add_systems(OnExit(GameState::Pause), cleanup_pause_menu)
@@ -705,4 +705,55 @@ fn cleanup(
     //     commands.entity(entity).despawn_recursive();
     // }
     next_state.set(GameState::InGame);
+}
+
+fn spawn_background(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    #[cfg(all(not(feature = "atlas"), feature = "render"))] array_texture_loader: Res<
+        ArrayTextureLoader,
+    >,
+) {
+    let texture_handle: Handle<Image> = asset_server.load("textures/starfield.png");
+    let map_size = TilemapSize { x: 1024, y: 1024 };
+    let tilemap_entity = commands.spawn_empty().id();
+    let mut tile_storage = TileStorage::empty(map_size);
+
+    for x in 0..map_size.x {
+        for y in 0..map_size.y {
+            let tile_pos = TilePos { x, y };
+            let tile_entity = commands
+                .spawn(TileBundle {
+                    position: tile_pos,
+                    tilemap_id: TilemapId(tilemap_entity),
+                    ..default()
+                })
+                .id();
+            tile_storage.set(&tile_pos, tile_entity);
+        }
+    }
+
+    let tile_size = TilemapTileSize { x: 1024., y: 1024. };
+    let grid_size = tile_size.into();
+    let map_type = TilemapType::default();
+
+    commands.entity(tilemap_entity).insert(TilemapBundle {
+        grid_size,
+        map_type,
+        size: map_size,
+        storage: tile_storage,
+        texture: TilemapTexture::Single(texture_handle),
+        tile_size,
+        transform: get_tilemap_center_transform(&map_size, &grid_size, &map_type, 0.0),
+        ..default()
+    });
+
+    #[cfg(all(not(feature = "atlas"), feature = "render"))]
+    {
+        array_texture_loader.add(TilemapArrayTexture {
+            texture: TilemapTexture::Single(asset_server.load("textures/Space Background.png")),
+            tile_size,
+            ..default()
+        });
+    }
 }
