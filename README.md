@@ -11,6 +11,5 @@ To play the game, run `cargo run` . Left and right arrows will move Sisyphus. `E
 * Sprite texture: <https://zegley.itch.io/2d-platformermetroidvania-asset-pack>
 * Title font: <https://ggbot.itch.io/kaph-font>
 * Button font: <https://emhuo.itch.io/peaberry-pixel-font>
-* Button texture: <https://realvektyr.itch.io/casual-game-buttons-vol-02>
 * Fatigue meter texture: <https://bdragon1727.itch.io/basic-pixel-health-bar-and-scroll-bar>
 * Space background: <https://screamingbrainstudios.itch.io/seamless-space-backgrounds>
