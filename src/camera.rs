@@ -87,7 +87,7 @@ fn spawn_camera(
         layers_data: vec![
             LayerData {
                 speed: LayerSpeed::Bidirectional(0., 0.),
-                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::MirrorHorizontally),
                 path: "layers/sky.png".to_string(),
                 tile_size: Vec2::new(384., 216.),
                 cols: 1,
@@ -98,7 +98,7 @@ fn spawn_camera(
             },
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.9, 0.),
-                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::MirrorHorizontally),
                 path: "layers/far_mountains.png".to_string(),
                 tile_size: Vec2::new(384., 216.),
                 cols: 1,
@@ -109,7 +109,7 @@ fn spawn_camera(
             },
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.7, 0.),
-                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::MirrorHorizontally),
                 path: "layers/grassy_mountains.png".to_string(),
                 tile_size: Vec2::new(384., 216.),
                 cols: 1,
@@ -120,7 +120,7 @@ fn spawn_camera(
             },
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.5, 0.),
-                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::MirrorHorizontally),
                 path: "layers/clouds_mid.png".to_string(),
                 tile_size: Vec2::new(384., 216.),
                 cols: 1,
@@ -131,7 +131,7 @@ fn spawn_camera(
             },
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.3, 0.),
-                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::MirrorHorizontally),
                 path: "layers/hill.png".to_string(),
                 tile_size: Vec2::new(384., 216.),
                 cols: 1,
@@ -142,7 +142,7 @@ fn spawn_camera(
             },
             LayerData {
                 speed: LayerSpeed::Bidirectional(0.1, 0.),
-                repeat: LayerRepeat::horizontally(RepeatStrategy::Same),
+                repeat: LayerRepeat::horizontally(RepeatStrategy::MirrorHorizontally),
                 path: "layers/clouds_front.png".to_string(),
                 tile_size: Vec2::new(384., 216.),
                 cols: 1,

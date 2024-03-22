@@ -370,6 +370,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-parallax"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48a8d8b7d4152965e1890c88fca2b066df3599df1574a189d62ed9cedac7d6cd"
+dependencies = [
+ "bevy",
+ "serde",
+]
+
+[[package]]
 name = "bevy_a11y"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4074,6 +4084,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
+ "bevy-parallax",
  "bevy_kira_audio",
  "bevy_pkv",
  "bevy_rapier2d",
