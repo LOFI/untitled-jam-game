@@ -4107,6 +4107,7 @@ dependencies = [
  "bevy_kira_audio",
  "bevy_pkv",
  "bevy_rapier2d",
+ "rand",
 ]
 
 [[package]]
