@@ -111,7 +111,7 @@ fn spawn_player(
     let layout = TextureAtlasLayout::from_grid(Vec2::new(48.0, 48.0), 10, 1, None, None);
     let texture_atlas_layout = texture_atlases.add(layout);
     let animation_indices = AnimationIndices { first: 0, last: 9 };
-    let translation = Vec3::new(-50., 0., 0.);
+    let translation = Vec3::new(-50., 0., 3.);
 
     commands.spawn((
         SpriteSheetBundle {

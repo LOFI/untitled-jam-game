@@ -36,7 +36,7 @@ fn spawn_foreground(mut commands: Commands, ground_query: Query<&Ground>) {
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(0., WINDOW_BOTTOM_Y - WINDOW_HEIGHT / 4. - 12., 0.),
+                translation: Vec3::new(0., WINDOW_BOTTOM_Y - WINDOW_HEIGHT / 4. - 12., 6.),
                 scale: Vec3::new(WINDOW_WIDTH * 2., WINDOW_HEIGHT / 2., 1.),
                 rotation: Quat::from_rotation_z(7.5_f32.to_radians()),
             },
@@ -68,7 +68,10 @@ fn spawn_ground(
         .insert(Ground)
         .insert(RigidBody::Fixed)
         .insert(Friction::coefficient(0.7))
-        .insert(Damping { linear_damping: 0.7, angular_damping: 0.7 })
+        .insert(Damping {
+            linear_damping: 0.7,
+            angular_damping: 0.7,
+        })
         .insert(Collider::cuboid(WINDOW_WIDTH, 1.));
 }
 
