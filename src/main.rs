@@ -14,6 +14,7 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_kira_audio::prelude::*;
 use bevy_pkv::PkvStore;
 use bevy_rapier2d::prelude::*;
+use rand::seq::SliceRandom;
 
 use animation::AnimationPlugin;
 use boulder::BoulderPlugin;
@@ -34,6 +35,9 @@ struct BackgroundMusic;
 
 #[derive(Resource)]
 struct SoundFX;
+
+#[derive(Resource)]
+struct DistanceTraveled(f32);
 
 #[derive(Event)]
 pub enum PlayerInputEvent {
@@ -57,6 +61,7 @@ fn main() {
     App::new()
         .insert_resource(AssetMetaCheck::Never) // Makes WASM happy
         .insert_resource(ClearColor(COLOR_BACKGROUND))
+        .insert_resource(DistanceTraveled(0.))
         .insert_resource(PkvStore::new("LOFI", "sisyphus-simulator"))
         .init_state::<GameState>()
         .add_audio_channel::<BackgroundMusic>()
@@ -342,7 +347,7 @@ fn setup_background_music(mut commands: Commands, asset_server: Res<AssetServer>
         AudioBundle {
             source: asset_server.load("music/Lost in the Dessert.ogg"),
             settings: PlaybackSettings {
-                volume: Volume::new(0.35),
+                volume: Volume::new(0.25),
                 mode: PlaybackMode::Loop,
                 ..default()
             },
@@ -541,7 +546,8 @@ fn log_transitions(mut transitions: EventReader<StateTransitionEvent<GameState>>
     }
 }
 
-fn setup_give_up_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_give_up_menu(mut commands: Commands, asset_server: Res<AssetServer>, distance_traveled: Res<DistanceTraveled>) {
+    let distance = distance_traveled.0 / 64.;
     let title_font: Handle<Font> = asset_server.load("fonts/Kaph-Regular.ttf");
     commands
         .spawn(NodeBundle {
@@ -579,6 +585,52 @@ fn setup_give_up_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         font_size: 25.0,
         font,
     };
+
+    if distance > 100. {
+
+        let phrases = [
+            "You almost made it!",
+            "Nearly there!",
+            "So close!",
+            "Just a bit more!",
+            "You'll get it next time!",
+            "You were almost there!",
+            "Don't give up so easily!",
+            "You were so close!",
+            "You were almost there!",
+            "Maybe next time!"
+        ];
+
+        commands.spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::Start,
+                    align_items: AlignItems::Center,
+                    margin: UiRect {
+                        left: Val::Px(0.),
+                        right: Val::Px(0.),
+                        top: Val::Px(20.),
+                        bottom: Val::Px(0.),
+                    },
+                    ..default()
+                },
+                ..default()
+            },
+            UI_LAYER,
+        )).with_children(|parent| {
+            parent.spawn((
+            TextBundle::from_section(
+                phrases.choose(&mut rand::thread_rng()).unwrap().to_string(),
+                text_style.clone(),
+            )
+            .with_text_justify(JustifyText::Center),
+            UI_LAYER,
+        ));
+    });
+    }
 
     commands
         .spawn((
@@ -688,7 +740,8 @@ fn cleanup_give_up_menu(
     }
 }
 
-fn cleanup(mut next_state: ResMut<NextState<GameState>>) {
+fn cleanup(mut next_state: ResMut<NextState<GameState>>, mut distance_traveled: ResMut<DistanceTraveled>) {
+    distance_traveled.0 = 0.;
     next_state.set(GameState::InGame);
 }
 

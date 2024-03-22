@@ -1,6 +1,6 @@
 use crate::animation::{AnimationIndices, AnimationTimer};
 use crate::boulder::Boulder;
-use crate::{GameState, PlayerInputEvent};
+use crate::{DistanceTraveled, GameState, PlayerInputEvent};
 use bevy::math::bounding::{Aabb2d, BoundingCircle, IntersectsVolume};
 use bevy::{asset::LoadedFolder, prelude::*};
 use bevy_rapier2d::prelude::*;
@@ -325,6 +325,7 @@ fn movement(
     mut events: EventReader<PlayerInputEvent>,
     mut query: Query<(&Transform, &mut KinematicCharacterController)>,
     mut next_state: ResMut<NextState<PlayerState>>,
+    mut distance_traveled: ResMut<DistanceTraveled>,
 ) {
     if query.is_empty() {
         return;
@@ -359,6 +360,7 @@ fn push_boulder(
     query: Query<&Transform, With<Player>>,
     boulder_query: Query<&Transform, With<Boulder>>,
     mut next_state: ResMut<NextState<PlayerState>>,
+    mut distance_traveled: ResMut<DistanceTraveled>
 ) {
     if query.is_empty() || boulder_query.is_empty() {
         return;
@@ -374,6 +376,8 @@ fn push_boulder(
     );
 
     if boulder_circle.aabb_2d().intersects(&player_rect) {
+        distance_traveled.0 += 1.;
+        info!("{:2}", distance_traveled.0);
         next_state.set(PlayerState::Push);
     }
 }
