@@ -92,12 +92,13 @@ fn main() {
         ))
         // .add_plugins(WorldInspectorPlugin::new()) // Egui editor
         .add_systems(Startup, setup_background_music)
-        .add_systems(Update, (
-            volume,
-            movement,
-            pause,
-            // log_transitions,
-        ))
+        .add_systems(
+            Update,
+            (
+                volume, movement, pause,
+                // log_transitions,
+            ),
+        )
         .add_systems(OnEnter(GameState::Pause), setup_pause_menu)
         .add_systems(Update, pause_menu_system.run_if(in_state(GameState::Pause)))
         .add_systems(OnExit(GameState::Pause), cleanup_pause_menu)
@@ -133,13 +134,13 @@ fn movement(
         events.send(PlayerInputEvent::MoveLeft);
         move_events.send(ParallaxMoveEvent {
             camera,
-            camera_move_speed: Vec2::new(-1.0, 0.1),
+            camera_move_speed: Vec2::new(-1.0, 0.01),
         });
     } else if keyboard_input.pressed(KeyCode::ArrowRight) {
         events.send(PlayerInputEvent::MoveRight);
         move_events.send(ParallaxMoveEvent {
             camera,
-            camera_move_speed: Vec2::new(1.0, 0.1),
+            camera_move_speed: Vec2::new(1.0, 0.01),
         });
     } else {
         events.send(PlayerInputEvent::Idle);
