@@ -57,19 +57,19 @@ fn main() {
     App::new()
         .insert_resource(AssetMetaCheck::Never) // Makes WASM happy
         .insert_resource(ClearColor(COLOR_BACKGROUND))
-        .insert_resource(PkvStore::new("LOFI", "untitled-jam-game"))
+        .insert_resource(PkvStore::new("LOFI", "sisyphus-simulator"))
         .init_state::<GameState>()
         .add_audio_channel::<BackgroundMusic>()
         .add_audio_channel::<SoundFX>()
         .add_event::<PlayerInputEvent>()
         .add_plugins(EmbeddedAssetPlugin {
-            mode: PluginMode::ReplaceDefault
+            mode: PluginMode::ReplaceDefault,
         })
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        title: "LOFI Untitled Jam Game".to_string(),
+                        title: "Sisyphus Simulator".to_string(),
                         resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
                         resizable: false,
                         ..default()
@@ -183,19 +183,11 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 
     let font = asset_server.load("fonts/PeaberryMono.ttf");
-    let texture_handle: Handle<Image> = asset_server.load("ui/CGB02-purple_M_btn.png");
 
     let text_style = TextStyle {
         color: Color::WHITE,
         font_size: 25.0,
         font,
-    };
-
-    let slicer = TextureSlicer {
-        border: BorderRect::square(16.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 1.,
     };
 
     commands
@@ -221,24 +213,21 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         ))
         .with_children(|parent| {
             parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(150.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
+                .spawn((ButtonBundle {
+                    background_color: Color::PURPLE.into(),
+                    style: Style {
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        width: Val::Px(150.),
+                        height: Val::Px(50.),
+                        margin: UiRect {
+                            top: Val::Px(10.),
                             ..default()
                         },
-                        image: texture_handle.clone().into(),
                         ..default()
                     },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
+                    ..default()
+                },))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         "Play".to_string(),
@@ -247,30 +236,43 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 });
 
             parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(150.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
+                .spawn((ButtonBundle {
+                    background_color: Color::PURPLE.into(),
+                    style: Style {
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        width: Val::Px(150.),
+                        height: Val::Px(50.),
+                        margin: UiRect {
+                            top: Val::Px(10.),
                             ..default()
                         },
-                        image: texture_handle.clone().into(),
                         ..default()
                     },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
+                    ..default()
+                },))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         "Quit".to_string(),
                         text_style.clone(),
                     ));
                 });
+
+            parent.spawn((
+                TextBundle::from_section(
+                    "-/= to lower/raise volume\n0 to mute".to_string(),
+                    text_style.clone(),
+                )
+                .with_text_justify(JustifyText::Center)
+                .with_style(Style {
+                    margin: UiRect {
+                        top: Val::Px(10.),
+                        ..default()
+                    },
+                    ..default()
+                }),
+                UI_LAYER,
+            ));
         });
 }
 
@@ -399,19 +401,11 @@ fn setup_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 
     let font = asset_server.load("fonts/PeaberryMono.ttf");
-    let texture_handle: Handle<Image> = asset_server.load("ui/CGB02-purple_M_btn.png");
 
     let text_style = TextStyle {
         color: Color::WHITE,
         font_size: 25.0,
         font,
-    };
-
-    let slicer = TextureSlicer {
-        border: BorderRect::square(16.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 1.,
     };
 
     commands
@@ -437,24 +431,21 @@ fn setup_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         ))
         .with_children(|parent| {
             parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(150.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
+                .spawn((ButtonBundle {
+                    background_color: Color::PURPLE.into(),
+                    style: Style {
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        width: Val::Px(150.),
+                        height: Val::Px(50.),
+                        margin: UiRect {
+                            top: Val::Px(10.),
                             ..default()
                         },
-                        image: texture_handle.clone().into(),
                         ..default()
                     },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
+                    ..default()
+                },))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         "Back".to_string(),
@@ -463,30 +454,43 @@ fn setup_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 });
 
             parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(150.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
+                .spawn((ButtonBundle {
+                    background_color: Color::PURPLE.into(),
+                    style: Style {
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        width: Val::Px(150.),
+                        height: Val::Px(50.),
+                        margin: UiRect {
+                            top: Val::Px(10.),
                             ..default()
                         },
-                        image: texture_handle.clone().into(),
                         ..default()
                     },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
+                    ..default()
+                },))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         "Give Up".to_string(),
                         text_style.clone(),
                     ));
                 });
+
+            parent.spawn((
+                TextBundle::from_section(
+                    "-/= to lower/raise volume\n0 to mute".to_string(),
+                    text_style.clone(),
+                )
+                .with_text_justify(JustifyText::Center)
+                .with_style(Style {
+                    margin: UiRect {
+                        top: Val::Px(10.),
+                        ..default()
+                    },
+                    ..default()
+                }),
+                UI_LAYER,
+            ));
         });
 }
 
@@ -569,19 +573,11 @@ fn setup_give_up_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 
     let font = asset_server.load("fonts/PeaberryMono.ttf");
-    let texture_handle: Handle<Image> = asset_server.load("ui/CGB02-purple_M_btn.png");
 
     let text_style = TextStyle {
         color: Color::WHITE,
         font_size: 25.0,
         font,
-    };
-
-    let slicer = TextureSlicer {
-        border: BorderRect::square(16.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 1.,
     };
 
     commands
@@ -607,24 +603,21 @@ fn setup_give_up_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         ))
         .with_children(|parent| {
             parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(200.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
+                .spawn((ButtonBundle {
+                    background_color: Color::PURPLE.into(),
+                    style: Style {
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        width: Val::Px(200.),
+                        height: Val::Px(50.),
+                        margin: UiRect {
+                            top: Val::Px(10.),
                             ..default()
                         },
-                        image: texture_handle.clone().into(),
                         ..default()
                     },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
+                    ..default()
+                },))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         "Try again".to_string(),
@@ -633,24 +626,21 @@ fn setup_give_up_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 });
 
             parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::Center,
-                            width: Val::Px(150.),
-                            height: Val::Px(50.),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                ..default()
-                            },
+                .spawn((ButtonBundle {
+                    background_color: Color::PURPLE.into(),
+                    style: Style {
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        width: Val::Px(150.),
+                        height: Val::Px(50.),
+                        margin: UiRect {
+                            top: Val::Px(10.),
                             ..default()
                         },
-                        image: texture_handle.clone().into(),
                         ..default()
                     },
-                    ImageScaleMode::Sliced(slicer.clone()),
-                ))
+                    ..default()
+                },))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         "Quit".to_string(),
