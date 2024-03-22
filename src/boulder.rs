@@ -43,11 +43,11 @@ fn spawn_boulder(
             mesh: meshes.add(Circle { radius: 64. }).into(),
             material: materials.add(asset_server.load("textures/stone.png")),
             // material: materials.add(Color::BLUE),
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            transform: Transform::from_xyz(0.0, 0.0, 5.0),
             ..default()
         })
         .insert(RigidBody::Dynamic)
         .insert(Collider::ball(64.))
-        .insert(AdditionalMassProperties::Mass(1134.))  // 2500 lbs in kg
+        .insert(AdditionalMassProperties::Mass(1134.)) // 2500 lbs in kg
         .insert(Boulder);
 }
